@@ -1,5 +1,5 @@
 app_id: 49ad42fb13104cc6a2d4bad53dec699f
-name: registry-ui
+name: Container Registry
 description: A graphical hub to the CrowdStrike container registry
 logo: https://assets.falcon.us-2.crowdstrike.com/apps/49ad42fb13104cc6a2d4bad53dec699f/containers-icon-160pxs.png
 manifest_version: "2023-05-09"
@@ -64,7 +64,12 @@ ui:
         ref: pages.sandbox
 api_integrations: []
 rtr_scripts: []
-collections: []
+collections:
+  - name: images
+    description: Available container images
+    schema: null
+    permissions: []
+    workflow_integration: null
 auth:
   scopes:
     - falcon-container:read

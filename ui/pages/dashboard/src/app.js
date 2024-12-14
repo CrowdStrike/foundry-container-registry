@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { HashRouter, Routes, Route, Outlet } from "react-router-dom";
 import {
   useFalconApiContext,
@@ -34,10 +34,30 @@ function App() {
     return null;
   }
 
+  const [imageName, setImageName] = useState("");
+  const [imageValue, setImageValue] = useState("");
+  function addImage() {
+    alert(imageName, imageValue);
+    setImageName("");
+    setImageValue("");
+  }
+
   return (
     <React.StrictMode>
       <FalconApiContext.Provider value={{ falcon, navigation, isInitialized }}>
         <h1>CrowdStrike Container Registry</h1>
+        <input
+          type="text"
+          id="imageName"
+          value={imageName}
+          onChange={(e) => setImageName(e.target.value)}
+        ></input>
+        <textarea
+          id="imageValue"
+          value={imageValue}
+          onChange={(e) => setImageValue(e.target.value)}
+        />
+        <button onClick={addImage} />
         <SlDetails summary="Falcon Sensor">
           <p>
             Falcon Linux sensor as a container image, primarily to run as a
