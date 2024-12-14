@@ -1,0 +1,80 @@
+app_id: 49ad42fb13104cc6a2d4bad53dec699f
+name: registry-ui
+description: A graphical hub to the CrowdStrike container registry
+logo: https://assets.falcon.us-2.crowdstrike.com/apps/49ad42fb13104cc6a2d4bad53dec699f/containers-icon-160pxs.png
+manifest_version: "2023-05-09"
+ignored:
+  - ui/(extensions|pages)/[^\/]*?/public
+  - ui/(extensions|pages)/[^\/]*?/index.html
+  - ui/(extensions|pages)/[^\/]*?/favicon.ico
+  - ui/(extensions|pages)/.*?/node_modules
+  - ui/(extensions|pages)/.*?/config
+  - ui/(extensions|pages)/.*?/\.gitignore
+  - ui/(extensions|pages)/.*?/package\.json
+  - ui/(extensions|pages)/.*?/tsconfig\.json
+  - ui/(extensions|pages)/.*?/tsconfig\..*\.json
+  - ui/(extensions|pages)/.*?/.*?\.(md|log|lock|cjs)
+ui:
+  homepage: pages.dashboard
+  extensions: []
+  pages:
+    dashboard:
+      id: a7a2c47c0905417ca6ccb7ca19e47265
+      name: dashboard
+      description: Overview of all available container images
+      path: ui/pages/dashboard/src/dist
+      entrypoint: ui/pages/dashboard/src/dist/index.html
+      content_security_policy:
+        connect-src: []
+        style-src: []
+        style-src-elem: []
+        script-src: []
+        form-action: []
+        img-src: []
+        media-src: []
+        object-src: []
+      permissions: []
+    sandbox:
+      id: 6d8239b2fd294f758cd805175bcff241
+      name: sandbox
+      description: ""
+      path: ui/pages/sandbox/dist
+      entrypoint: ui/pages/sandbox/dist/index.html
+      content_security_policy:
+        connect-src: []
+        style-src: []
+        style-src-elem: []
+        script-src: []
+        form-action: []
+        img-src: []
+        media-src: []
+        object-src: []
+      permissions: []
+  dashboards: {}
+  navigation:
+    id: 30b114025698481eb3719ca4d3cafbe9
+    links:
+      - path: dashboard
+        name: Dashboard
+        permissions: []
+        ref: pages.dashboard
+      - path: sandbox
+        name: Sandbox
+        permissions: []
+        ref: pages.sandbox
+api_integrations: []
+rtr_scripts: []
+collections: []
+auth:
+  scopes:
+    - falcon-container:read
+    - iac:read
+    - kubernetes-protection:read
+    - sensor-installers:read
+    - snapshot-scanner:read
+  permissions: {}
+  roles: []
+functions: []
+workflows: []
+logscale:
+  saved_searches: []
