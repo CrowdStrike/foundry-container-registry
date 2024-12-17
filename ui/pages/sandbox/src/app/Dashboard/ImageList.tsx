@@ -1,35 +1,10 @@
 import * as React from "react";
-import {
-  Button,
-  ClipboardCopy,
-  DataList,
-  DataListCell,
-  DataListContent,
-  DataListItem,
-  DataListItemCells,
-  DataListItemRow,
-  DataListToggle,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Flex,
-  FlexItem,
-  Grid,
-  GridItem,
-  PageSection,
-  Title,
-} from "@patternfly/react-core";
-import {
-  CheckIcon,
-  CodeBranchIcon,
-  CubeIcon,
-  PlusCircleIcon,
-  TimesIcon,
-} from "@patternfly/react-icons";
+import { DataList, PageSection, Title } from "@patternfly/react-core";
+import FalconApi from "@crowdstrike/foundry-js";
+import { ImageItem } from "./ImageItem";
 
 const ImageList: React.FunctionComponent = () => {
-  const [expanded, setExpanded] = React.useState([""]);
+  const falcon = new FalconApi();
 
   const images = [
     {
@@ -209,22 +184,19 @@ const ImageList: React.FunctionComponent = () => {
     },
   ];
 
-  const toggle = (id) => {
-    const index = expanded.indexOf(id);
-    const newExpanded =
-      index >= 0
-        ? [
-            ...expanded.slice(0, index),
-            ...expanded.slice(index + 1, expanded.length),
-          ]
-        : [...expanded, id];
-    setExpanded(newExpanded);
-  };
-
-  function latestImageName(i) {
-    const tag = i.tags[i.tags.length - 1];
-    return `${i.registry}/${i.repository}:${tag}`;
-  }
+  console.log("connecting...");
+  falcon.connect().then(() => {
+    console.log("connected, writing images");
+    const imageCol = falcon.collection({ collection: "images" });
+    images.map((i) => {
+      imageCol
+        .write(i.name, i)
+        .then((result) => {
+          console.log(result);
+        })
+        .catch(console.error);
+    });
+  });
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -233,99 +205,7 @@ const ImageList: React.FunctionComponent = () => {
       </Title>
       <DataList aria-label="Mixed expandable data list example">
         {images.map((i) => {
-          return (
-            <DataListItem isExpanded={expanded.includes(i.name)}>
-              <DataListItemRow>
-                <DataListToggle
-                  onClick={() => toggle(i.name)}
-                  isExpanded={expanded.includes(i.name)}
-                  id={i.name}
-                />
-                <DataListItemCells
-                  dataListCells={[
-                    <DataListCell isIcon key="icon">
-                      <CubeIcon />
-                    </DataListCell>,
-                    <DataListCell>
-                      <Title headingLevel="h3">{i.name}</Title>
-                      <p>{i.description}</p>
-                    </DataListCell>,
-                    <DataListCell>
-                      <Grid>
-                        <GridItem span={9}>
-                          <DescriptionList>
-                            <DescriptionListGroup>
-                              <DescriptionListTerm>
-                                Latest tag
-                              </DescriptionListTerm>
-                              <DescriptionListDescription>
-                                <code>{i.tags[i.tags.length - 1]}</code>
-                              </DescriptionListDescription>
-                            </DescriptionListGroup>
-                          </DescriptionList>
-                        </GridItem>
-                        <GridItem span={3}>
-                          <DescriptionList>
-                            <DescriptionListGroup>
-                              <DescriptionListTerm>
-                                Multi-arch
-                              </DescriptionListTerm>
-                              <DescriptionListDescription>
-                                {i.multiArch ? (
-                                  <>
-                                    <CheckIcon /> Yes
-                                  </>
-                                ) : (
-                                  <>
-                                    <TimesIcon /> No
-                                  </>
-                                )}
-                              </DescriptionListDescription>
-                            </DescriptionListGroup>
-                          </DescriptionList>
-                        </GridItem>
-                      </Grid>
-                    </DataListCell>,
-                  ]}
-                />
-              </DataListItemRow>
-              <DataListContent
-                aria-label="First mixed expandable content details"
-                isHidden={!expanded.includes(i.name)}
-              >
-                <DescriptionList>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Latest image name</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <ClipboardCopy
-                        isReadOnly
-                        hoverTip="Copy"
-                        clickTip="Copied"
-                        variant="inline-compact"
-                        isCode={true}
-                      >
-                        {latestImageName(i)}
-                      </ClipboardCopy>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Older tags</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <ul>
-                        {i.tags.map((t) => {
-                          return (
-                            <li>
-                              <code>{t}</code>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                </DescriptionList>
-              </DataListContent>
-            </DataListItem>
-          );
+          return <ImageItem image={i} />;
         })}
       </DataList>
     </PageSection>

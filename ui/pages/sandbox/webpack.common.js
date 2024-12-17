@@ -6,8 +6,8 @@ const CopyPlugin = require("copy-webpack-plugin");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 const Dotenv = require("dotenv-webpack");
 const BG_IMAGES_DIRNAME = "bgimages";
-const ASSET_PATH =
-  process.env.ASSET_PATH || "/6d8239b2fd294f758cd805175bcff241/";
+// empty string ensures relative path is used in index.html import, required for foundry pages
+const ASSET_PATH = process.env.ASSET_PATH || "";
 module.exports = (env) => {
   return {
     module: {
