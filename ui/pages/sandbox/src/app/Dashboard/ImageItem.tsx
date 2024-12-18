@@ -44,14 +44,14 @@ export function ImageItem({ image }: ImageItemProps) {
         />
         <DataListItemCells
           dataListCells={[
-            <DataListCell isIcon>
+            <DataListCell isIcon key={image.name + "-icon"}>
               <CubeIcon />
             </DataListCell>,
-            <DataListCell>
+            <DataListCell key={image.name + "-title"}>
               <Title headingLevel="h3">{image.name}</Title>
               <p>{image.description}</p>
             </DataListCell>,
-            <DataListCell>
+            <DataListCell key={image.name + "-info"}>
               <Grid>
                 <GridItem span={9}>
                   <DescriptionList>
@@ -108,7 +108,7 @@ export function ImageItem({ image }: ImageItemProps) {
               <ul>
                 {image.tags.map((t) => {
                   return (
-                    <li>
+                    <li key={image.name + "-" + t}>
                       <code>{t}</code>
                     </li>
                   );

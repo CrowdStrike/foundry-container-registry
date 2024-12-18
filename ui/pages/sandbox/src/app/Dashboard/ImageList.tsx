@@ -185,27 +185,30 @@ const ImageList: React.FunctionComponent = () => {
   ];
 
   console.log("connecting...");
-  falcon.connect().then(() => {
-    console.log("connected, writing images");
-    const imageCol = falcon.collection({ collection: "images" });
-    images.map((i) => {
-      imageCol
-        .write(i.name, i)
-        .then((result) => {
-          console.log(result);
-        })
-        .catch(console.error);
-    });
-  });
+  falcon
+    .connect()
+    .then(() => {
+      console.log("connected, writing images");
+      const imageCol = falcon.collection({ collection: "images" });
+      images.map((i) => {
+        imageCol
+          .write(i.name, i)
+          .then((result) => {
+            console.log(result);
+          })
+          .catch(console.error);
+      });
+    })
+    .catch(console.error);
 
   return (
     <PageSection hasBodyWrapper={false}>
       <Title headingLevel="h1" size="lg">
-        Container Images
+        Container images
       </Title>
       <DataList aria-label="Mixed expandable data list example">
         {images.map((i) => {
-          return <ImageItem image={i} />;
+          return <ImageItem image={i} key={i.name} />;
         })}
       </DataList>
     </PageSection>
