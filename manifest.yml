@@ -67,7 +67,7 @@ rtr_scripts: []
 collections:
   - name: images
     description: Available container images
-    schema: null
+    schema: collections/images.json
     permissions: []
     workflow_integration: null
 auth:
@@ -81,5 +81,7 @@ auth:
   roles: []
 functions: []
 workflows: []
+parsers: []
 logscale:
   saved_searches: []
+lookup_files: []
