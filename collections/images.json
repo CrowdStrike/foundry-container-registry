@@ -7,9 +7,6 @@
     "description": {
       "type": "string"
     },
-    "multiArch": {
-      "type": "boolean"
-    },
     "registry": {
       "type": "string"
     },
@@ -19,7 +16,18 @@
     "tags": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "arch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       }
     }
   }
