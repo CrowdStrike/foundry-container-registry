@@ -1,0 +1,72 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"log/slog"
+
+	fdk "github.com/CrowdStrike/foundry-fn-go"
+	"github.com/crowdstrike/gofalcon/falcon"
+	"github.com/crowdstrike/gofalcon/falcon/client"
+	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
+)
+
+func main() {
+	fdk.Run(context.Background(), newHandler)
+}
+
+func newHandler(_ context.Context, _ *slog.Logger, cfg config) fdk.Handler {
+	mux := fdk.NewMux()
+	mux.Post("/sync-images", fdk.HandlerFn(func(ctx context.Context, r fdk.Request) fdk.Response {
+		client, err := newFalconClient(ctx, r.AccessToken)
+		if err != nil {
+			return fdk.Response{
+				Code: 500,
+				Body: fdk.JSON(err),
+			}
+			// some other error - see gofalcon documentation
+		}
+		res, err := client.FalconContainer.GetCredentials(&falcon_container.GetCredentialsParams{
+			Context: context.Background(),
+		})
+
+		if err != nil {
+			return fdk.Response{
+				Code: 500,
+				Body: fdk.JSON(err),
+			}
+			// some other error - see gofalcon documentation
+		}
+		return fdk.Response{
+			Code: 200,
+			Body: fdk.JSON(*res.GetPayload().Resources[0].Token),
+		}
+	}))
+	return mux
+}
+
+func newFalconClient(ctx context.Context, token string) (*client.CrowdStrikeAPISpecification, error) {
+	opts := fdk.FalconClientOpts()
+	return falcon.NewClient(&falcon.ApiConfig{
+		AccessToken:       token,
+		Cloud:             falcon.Cloud(opts.Cloud),
+		Context:           ctx,
+		UserAgentOverride: opts.UserAgent,
+	})
+}
+
+type config struct {
+	Int int    `json:"integer"`
+	Str string `json:"string"`
+}
+
+func (c config) OK() error {
+	var errs []error
+	if c.Int < 1 {
+		errs = append(errs, errors.New("integer must be greater than 0"))
+	}
+	if c.Str == "" {
+		errs = append(errs, errors.New("non empty string must be provided"))
+	}
+	return errors.Join(errs...)
+}
