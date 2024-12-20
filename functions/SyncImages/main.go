@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
 	fdk "github.com/CrowdStrike/foundry-fn-go"
@@ -15,14 +14,17 @@ func main() {
 	fdk.Run(context.Background(), newHandler)
 }
 
-func newHandler(_ context.Context, _ *slog.Logger, cfg config) fdk.Handler {
+func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handler {
 	mux := fdk.NewMux()
 	mux.Post("/sync-images", fdk.HandlerFn(func(ctx context.Context, r fdk.Request) fdk.Response {
 		client, err := newFalconClient(ctx, r.AccessToken)
 		if err != nil {
 			return fdk.Response{
 				Code: 500,
-				Body: fdk.JSON(err),
+				Errors: []fdk.APIError{{
+					Code:    505,
+					Message: err.Error(),
+				}},
 			}
 			// some other error - see gofalcon documentation
 		}
@@ -55,18 +57,18 @@ func newFalconClient(ctx context.Context, token string) (*client.CrowdStrikeAPIS
 	})
 }
 
-type config struct {
-	Int int    `json:"integer"`
-	Str string `json:"string"`
-}
+// type config struct {
+// 	Int int    `json:"integer"`
+// 	Str string `json:"string"`
+// }
 
-func (c config) OK() error {
-	var errs []error
-	if c.Int < 1 {
-		errs = append(errs, errors.New("integer must be greater than 0"))
-	}
-	if c.Str == "" {
-		errs = append(errs, errors.New("non empty string must be provided"))
-	}
-	return errors.Join(errs...)
-}
+// func (c config) OK() error {
+// 	var errs []error
+// 	if c.Int < 1 {
+// 		errs = append(errs, errors.New("integer must be greater than 0"))
+// 	}
+// 	if c.Str == "" {
+// 		errs = append(errs, errors.New("non empty string must be provided"))
+// 	}
+// 	return errors.Join(errs...)
+// }
