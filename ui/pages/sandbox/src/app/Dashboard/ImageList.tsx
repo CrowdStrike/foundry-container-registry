@@ -188,30 +188,28 @@ const ImageList: React.FunctionComponent = () => {
   falcon
     .connect()
     .then(() => {
-      console.log("connected, writing images");
+      if (!falcon.isConnected) return;
+      console.log("connected, reading images");
       const imageCol = falcon.collection({ collection: "images" });
-      images.map((i) => {
-        imageCol
-          .write(i.name, i)
-          .then((result) => {
-            console.log(result);
-          })
-          .catch(console.error);
-      });
+      imageCol
+        // should use list objects method when available PLATFORMPG-790833
+        .search({
+          filter: "x-cs-object-name:'*'",
+          // these should be optional, see ticket above
+          offset: "0",
+          sort: "name.desc",
+          limit: 10,
+        })
+        .then(console.log);
     })
-    .catch(console.error);
+    .catch(console.error); //TODO: perform a get on each object, search just returns the names
 
   return (
-    <PageSection hasBodyWrapper={false}>
-      <Title headingLevel="h1" size="lg">
-        Container images
-      </Title>
-      <DataList aria-label="Mixed expandable data list example">
-        {images.map((i) => {
-          return <ImageItem image={i} key={i.name} />;
-        })}
-      </DataList>
-    </PageSection>
+    <DataList aria-label="Mixed expandable data list example">
+      {images.map((i) => {
+        return <ImageItem image={i} key={i.name} />;
+      })}
+    </DataList>
   );
 };
 
