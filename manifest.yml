@@ -93,7 +93,11 @@ functions:
         api_path: /sync-images
         request_schema: null
         response_schema: null
-        workflow_integration: null
+        workflow_integration:
+          id: 7f3a9c5b2e6d4f8ab1c0d2e4f6a8b0c2
+          disruptive: false
+          system_action: false # TODO: make this private (true) after debugging
+          tags: [Container Registry]
         permissions: []
     language: go
 workflows: []
