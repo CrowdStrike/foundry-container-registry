@@ -3,12 +3,8 @@ package main
 import (
 	"context"
 	"log/slog"
-	"os"
 
 	fdk "github.com/CrowdStrike/foundry-fn-go"
-	"github.com/crowdstrike/gofalcon/falcon"
-	"github.com/crowdstrike/gofalcon/falcon/client"
-	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
 )
 
 func main() {
@@ -52,17 +48,17 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 	return mux
 }
 
-func newFalconClient(ctx context.Context, token string) (*client.CrowdStrikeAPISpecification, error) {
-	opts := fdk.FalconClientOpts()
-	_ = token
-	return falcon.NewClient(&falcon.ApiConfig{
-		ClientId:          os.Getenv("FALCON_CLIENT_ID"),
-		ClientSecret:      os.Getenv("FALCON_CLIENT_SECRET"),
-		Cloud:             falcon.Cloud(opts.Cloud),
-		Context:           ctx,
-		UserAgentOverride: opts.UserAgent,
-	})
-}
+// func newFalconClient(ctx context.Context, token string) (*client.CrowdStrikeAPISpecification, error) {
+// 	opts := fdk.FalconClientOpts()
+// 	_ = token
+// 	return falcon.NewClient(&falcon.ApiConfig{
+// 		ClientId:          os.Getenv("FALCON_CLIENT_ID"),
+// 		ClientSecret:      os.Getenv("FALCON_CLIENT_SECRET"),
+// 		Cloud:             falcon.Cloud(opts.Cloud),
+// 		Context:           ctx,
+// 		UserAgentOverride: opts.UserAgent,
+// 	})
+// }
 
 // type config struct {
 // 	Int int    `json:"integer"`
