@@ -22,7 +22,7 @@ import (
 )
 
 type CSRegistries struct {
-	Images []Image `json:"registry"`
+	Images []Image `json:"images"`
 }
 
 type Image struct {
@@ -46,25 +46,44 @@ func main() {
 func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handler {
 	mux := fdk.NewMux()
 	mux.Post("/sync-images", fdk.HandlerFn(func(ctx context.Context, r fdk.Request) fdk.Response {
-		client, cloud, err := newFalconClient(r.AccessToken)
+		accessToken := r.AccessToken
+
+		client, cloud, err := newFalconClient(accessToken)
 		if err != nil {
+			logger.Error("failed to create falcon client", "error", err)
 			return fdk.Response{
 				Code: 500,
-				Body: fdk.JSON(err),
+				Body: fdk.JSON(map[string]interface{}{
+					"error": err.Error(),
+				}),
 			}
 		}
 
 		imageData, err := getImages(client, cloud)
 		if err != nil {
+			logger.Error("failed to get images", "error", err)
 			return fdk.Response{
 				Code: 500,
-				Body: fdk.JSON(err),
+				Body: fdk.JSON(map[string]interface{}{
+					"error": err.Error(),
+				}),
+			}
+		}
+
+		var response CSRegistries
+		if err := json.Unmarshal(imageData, &response); err != nil {
+			logger.Error("failed to unmarshal image data", "error", err)
+			return fdk.Response{
+				Code: 500,
+				Body: fdk.JSON(map[string]interface{}{
+					"error": err.Error(),
+				}),
 			}
 		}
 
 		return fdk.Response{
 			Code: 200,
-			Body: fdk.JSON(imageData),
+			Body: fdk.JSON(response),
 		}
 	}))
 	return mux
