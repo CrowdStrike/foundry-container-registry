@@ -22,7 +22,7 @@ import (
 )
 
 type CSRegistries struct {
-	Images []Image `json:""`
+	Images []Image `json:"registry"`
 }
 
 type Image struct {
@@ -74,12 +74,17 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string, error) {
 	ctx := context.Background()
 	opts := fdk.FalconClientOpts()
+	cloud := opts.Cloud
+
+	if os.Getenv("FALCON_CLOUD") != "" {
+		cloud = os.Getenv("FALCON_CLOUD")
+	}
 
 	apiConfig := &falcon.ApiConfig{
 		AccessToken:       token,
-		Cloud:             falcon.Cloud(opts.Cloud),
+		Cloud:             falcon.Cloud(cloud),
 		Context:           ctx,
-		UserAgentOverride: opts.Cloud,
+		UserAgentOverride: opts.UserAgent,
 	}
 
 	if apiConfig.AccessToken == "" {
@@ -88,7 +93,7 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 	}
 
 	client, err := falcon.NewClient(apiConfig)
-	return client, opts.Cloud, err
+	return client, cloud, err
 }
 
 // getImages returns a list of images and tags from the CrowdStrike API.
