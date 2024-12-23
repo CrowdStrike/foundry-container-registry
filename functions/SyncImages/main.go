@@ -1,14 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	fdk "github.com/CrowdStrike/foundry-fn-go"
 	"github.com/Masterminds/semver"
@@ -16,13 +19,16 @@ import (
 	"github.com/containers/image/types"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/client"
+	"github.com/crowdstrike/gofalcon/falcon/client/custom_storage"
 	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
 	"github.com/crowdstrike/gofalcon/falcon/client/sensor_download"
 	"github.com/distribution/reference"
 )
 
-type CSRegistries struct {
-	Images []Image `json:"images"`
+type ImageList struct {
+	Updated    time.Time `json:"updated"`
+	DurationMs int64     `json:"duration"`
+	Images     []Image   `json:"images"`
 }
 
 type Image struct {
@@ -47,6 +53,7 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 	mux := fdk.NewMux()
 	mux.Post("/sync-images", fdk.HandlerFn(func(ctx context.Context, r fdk.Request) fdk.Response {
 		accessToken := r.AccessToken
+		startTime := time.Now()
 
 		client, cloud, err := newFalconClient(accessToken)
 		if err != nil {
@@ -70,7 +77,7 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 			}
 		}
 
-		var response CSRegistries
+		var response ImageList
 		if err := json.Unmarshal(imageData, &response); err != nil {
 			logger.Error("failed to unmarshal image data", "error", err)
 			return fdk.Response{
@@ -79,6 +86,13 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 					"error": err.Error(),
 				}),
 			}
+		}
+		response.Updated = time.Now()
+		response.DurationMs = time.Since(startTime).Milliseconds()
+
+		// TODO: better way to determine we are running in a foundry function?
+		if accessToken != "" {
+			writeToCollection(client, response)
 		}
 
 		return fdk.Response{
@@ -117,7 +131,7 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 
 // getImages returns a list of images and tags from the CrowdStrike API.
 func getImages(client *client.CrowdStrikeAPISpecification, cloud string) ([]byte, error) {
-	regInfo := CSRegistries{}
+	regInfo := ImageList{}
 	ctx := context.Background()
 
 	user, err := registryLogin(ctx, client)
@@ -324,4 +338,22 @@ func getRepositoryTags(rc registryConfig, image string) ([]string, error) {
 	}
 
 	return tags, nil
+}
+
+func writeToCollection(client *client.CrowdStrikeAPISpecification, images ImageList) error {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(images); err != nil {
+		return fmt.Errorf("Error encoding image list: %v", err)
+	}
+
+	_, err := client.CustomStorage.Upload(&custom_storage.UploadParams{
+		CollectionName: "images",
+		ObjectKey:      "all",
+		Body:           io.NopCloser(&buf),
+	})
+	if err != nil {
+		return fmt.Errorf("Error storing image list in collection: %v", err)
+	}
+
+	return nil
 }
