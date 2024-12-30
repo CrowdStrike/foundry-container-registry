@@ -22,6 +22,7 @@ The pages will now be available in the Falcon console (after refresh) under the 
 
 Foundry functions don't have a "dev mode" so we test locally and then deploy:
 
+1. Load a `FALCON_CLIENT_ID`, `FALCON_CLIENT_SECRET`, and `FALCON_CLOUD` into your environment
 1. In `functions/SyncImages`:
 
    1. `go run main.go`

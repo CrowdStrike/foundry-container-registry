@@ -193,7 +193,7 @@ const ImageList: React.FunctionComponent = () => {
       const imageCol = falcon.collection({ collection: "images" });
       imageCol
         // should use list objects method when available PLATFORMPG-790833
-        .read("images")
+        .read("all")
         .then(console.log);
     })
     .catch(console.error); //TODO: perform a get on each object, search just returns the names

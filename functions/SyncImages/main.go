@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -158,7 +157,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) ([]byte
 
 		tags, err := getRepositoryTags(registryConfig{User: user, Pass: pass}, sensor)
 		if err != nil {
-			return nil, fmt.Errorf("Error listing repository tags: %v", err)
+			return nil, fmt.Errorf("Error listing repository tags for %v: %v", sensor, err)
 		}
 
 		switch sensorType {
@@ -307,7 +306,7 @@ func getImageRef(sensor string) (types.ImageReference, error) {
 	}
 
 	if !reference.IsNameOnly(ref) {
-		return nil, errors.New("No tag or digest allowed in reference")
+		return nil, fmt.Errorf("No tag or digest allowed in reference: %v", ref.String())
 	}
 
 	return docker.NewReference(reference.TagNameOnly(ref))
