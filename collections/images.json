@@ -1,19 +1,11 @@
 {
   "type": "object",
   "properties": {
-    "name": {
-      "type": "string"
+    "updated": {
+      "type": "string",
+      "format": "date-time"
     },
-    "description": {
-      "type": "string"
-    },
-    "registry": {
-      "type": "string"
-    },
-    "repository": {
-      "type": "string"
-    },
-    "tags": {
+    "images": {
       "type": "array",
       "items": {
         "type": "object",
@@ -21,10 +13,30 @@
           "name": {
             "type": "string"
           },
-          "arch": {
+          "description": {
+            "type": "string"
+          },
+          "registry": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "tags": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "arch": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         }

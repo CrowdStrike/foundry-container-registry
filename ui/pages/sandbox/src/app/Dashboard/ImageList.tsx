@@ -193,13 +193,7 @@ const ImageList: React.FunctionComponent = () => {
       const imageCol = falcon.collection({ collection: "images" });
       imageCol
         // should use list objects method when available PLATFORMPG-790833
-        .search({
-          filter: "x-cs-object-name:'*'",
-          // these should be optional, see ticket above
-          offset: "0",
-          sort: "name.desc",
-          limit: 10,
-        })
+        .read("all")
         .then(console.log);
     })
     .catch(console.error); //TODO: perform a get on each object, search just returns the names
