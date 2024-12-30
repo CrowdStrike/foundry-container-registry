@@ -1,3 +1,4 @@
+import Image from "@app/shared/Image";
 import {
   DataListItem,
   DataListItemRow,
@@ -5,34 +6,25 @@ import {
   DataListItemCells,
   DataListCell,
   Title,
-  Grid,
-  GridItem,
   DescriptionList,
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
   DataListContent,
   ClipboardCopy,
+  Label,
 } from "@patternfly/react-core";
-import { CubeIcon, CheckIcon, TimesIcon } from "@patternfly/react-icons";
+import { CubeIcon } from "@patternfly/react-icons";
 import React from "react";
 
 interface ImageItemProps {
-  image: {
-    name: string;
-    description: string;
-    multiArch: boolean;
-    registry: string;
-    repository: string;
-    tags: string[];
-  };
+  image: Image;
 }
 
 export function ImageItem({ image }: ImageItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
-  const latestTag = image.tags[image.tags.length - 1];
-  const latestImageName = `${image.registry}/${image.repository}:${latestTag}`;
+  const latestImageName = `${image.repository}:${image.latest}`;
 
   return (
     <DataListItem isExpanded={isExpanded}>
@@ -52,36 +44,14 @@ export function ImageItem({ image }: ImageItemProps) {
               <p>{image.description}</p>
             </DataListCell>,
             <DataListCell key={image.name + "-info"}>
-              <Grid>
-                <GridItem span={9}>
-                  <DescriptionList>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Latest tag</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <code>{latestTag}</code>
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  </DescriptionList>
-                </GridItem>
-                <GridItem span={3}>
-                  <DescriptionList>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Multi-arch</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        {image.multiArch ? (
-                          <>
-                            <CheckIcon /> Yes
-                          </>
-                        ) : (
-                          <>
-                            <TimesIcon /> No
-                          </>
-                        )}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  </DescriptionList>
-                </GridItem>
-              </Grid>
+              <DescriptionList>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Latest tag</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <code>{image.latest}</code>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
             </DataListCell>,
           ]}
         />
@@ -108,8 +78,11 @@ export function ImageItem({ image }: ImageItemProps) {
               <ul>
                 {image.tags.map((t) => {
                   return (
-                    <li key={image.name + "-" + t}>
-                      <code>{t}</code>
+                    <li key={image.name + "-" + t.name}>
+                      <code>{t.name}</code>
+                      {t.arch.map((a) => {
+                        return <Label>{a}</Label>;
+                      })}
                     </li>
                   );
                 })}
