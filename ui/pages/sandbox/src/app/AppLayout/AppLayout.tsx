@@ -1,5 +1,4 @@
-import * as React from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { IAppRoute, IAppRouteGroup, routes } from "@app/routes";
 import {
   Button,
   Masthead,
@@ -19,43 +18,25 @@ import {
   ToolbarContent,
   ToolbarItem,
 } from "@patternfly/react-core";
-import { IAppRoute, IAppRouteGroup, routes } from "@app/routes";
-import FalconApi from "@crowdstrike/foundry-js";
+import * as React from "react";
+import { NavLink, useLocation } from "react-router-dom";
 
 interface IAppLayout {
   children: React.ReactNode;
 }
 
 const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
-  function syncImages() {
-    const falcon = new FalconApi();
-    falcon.connect().then(() => {
-      falcon
-        .cloudFunction({
-          name: "SyncImages",
-        })
-        .post({
-          path: "/sync-images",
-        })
-        .then(console.log)
-        .catch(console.error);
-    });
-  }
-
   const masthead = (
     <Masthead>
       <MastheadMain>
         <MastheadBrand style={{ margin: "auto" }}>
-          <Title headingLevel="h2">Container registry</Title>
+          <Title headingLevel="h2">Container Registry</Title>
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent>
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem align={{ default: "alignEnd" }}>
-              <Button variant="secondary" onClick={syncImages}>
-                Sync images now
-              </Button>
               <Button variant="secondary" isDisabled>
                 Copy login command
               </Button>

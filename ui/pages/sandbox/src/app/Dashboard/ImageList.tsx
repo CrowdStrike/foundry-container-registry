@@ -1,26 +1,59 @@
-import * as React from "react";
+import ImageCollectionResponse from "@app/types/ImageCollectionResponse";
+import FalconApi from "@crowdstrike/foundry-js";
 import {
+  Alert,
+  Button,
   DataList,
   Grid,
   GridItem,
-  PageSection,
   Skeleton,
-  Title,
+  Timestamp,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
 } from "@patternfly/react-core";
-import FalconApi from "@crowdstrike/foundry-js";
-import { ImageItem } from "./ImageItem";
-import ImageCollectionResponse from "@app/types/ImageCollectionResponse";
+import * as React from "react";
 import Image from "../types/Image";
+import { ImageItem } from "./ImageItem";
 
 const ImageList: React.FunctionComponent = () => {
-  const falcon = new FalconApi();
+  const [falcon, setFalcon] = React.useState<FalconApi | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState(null);
+  const [error, setError] = React.useState<Error | null>(null);
   const [images, setImages] = React.useState<Image[]>([]);
+  const [updated, setUpdated] = React.useState<Date>();
 
-  React.useEffect(() => {
+  function setErrorSafe(e: string | Error | Error[]) {
+    if (typeof e == "string") {
+      setError(new Error(e));
+    } else if (e instanceof Error) {
+      setError(e);
+    } else {
+      setError(e[0]);
+    }
+  }
+
+  function syncImages() {
+    setLoading(true);
+    falcon!
+      .cloudFunction({
+        name: "SyncImages",
+      })
+      .post({
+        path: "/sync-images",
+      })
+      .then(loadImages)
+      .catch(setErrorSafe)
+      .finally(() => {
+        setLoading(false);
+      });
+  }
+
+  function loadImages() {
+    if (falcon == null || !falcon.isConnected) return;
     if (window.location.hostname == "localhost") {
       // collection auth doesn't work in dev mode PLATFORMPG-792212
+      setUpdated(new Date());
       setImages([
         {
           name: "Mock Falcon Sensor",
@@ -56,13 +89,29 @@ const ImageList: React.FunctionComponent = () => {
       .then((resp) => {
         console.log(resp);
         const imageResp = resp as ImageCollectionResponse;
+        setUpdated(imageResp.updated);
         setImages(imageResp.images);
       })
-      .catch(console.error)
+      .catch(setErrorSafe)
       .finally(() => {
         setLoading(false);
       });
+  }
+
+  React.useEffect(() => {
+    const f = new FalconApi();
+    f.connect()
+      .then(() => {
+        if (!f.isConnected) {
+          setErrorSafe("falcon.connect() completed but not connected");
+        } else {
+          setFalcon(f);
+        }
+      })
+      .catch(setErrorSafe);
   }, []);
+
+  React.useEffect(loadImages, [falcon]);
 
   if (loading) {
     return (
@@ -77,11 +126,38 @@ const ImageList: React.FunctionComponent = () => {
     );
   } else {
     return (
-      <DataList aria-label="Mixed expandable data list example">
-        {images.map((i) => {
-          return <ImageItem image={i} key={i.name} />;
-        })}
-      </DataList>
+      <>
+        {error && (
+          <Alert variant="danger" title="Unexpected error">
+            <p>{error.message}</p>
+          </Alert>
+        )}
+        <DataList aria-label="Mixed expandable data list example">
+          {images.map((i) => {
+            return <ImageItem image={i} key={i.name} />;
+          })}
+        </DataList>
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem alignSelf="center">
+              <p>
+                This app periodically syncs image data with the CrowdStrike
+                registry. Last sync was{" "}
+                <Timestamp
+                  date={updated}
+                  style={{ fontSize: "var(--pf-v6-c-toolbar--FontSize)" }}
+                />
+                .
+              </p>
+            </ToolbarItem>
+            <ToolbarItem>
+              <Button variant="link" onClick={syncImages}>
+                Sync images now
+              </Button>
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+      </>
     );
   }
 };

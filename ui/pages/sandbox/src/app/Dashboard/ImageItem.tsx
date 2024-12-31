@@ -15,6 +15,7 @@ import {
   Label,
 } from "@patternfly/react-core";
 import { CubeIcon } from "@patternfly/react-icons";
+import { Table, Thead, Tr, Th, Td, Tbody } from "@patternfly/react-table";
 import React from "react";
 
 interface ImageItemProps {
@@ -40,7 +41,12 @@ export function ImageItem({ image }: ImageItemProps) {
               <CubeIcon />
             </DataListCell>,
             <DataListCell key={image.name + "-title"}>
-              <Title headingLevel="h3">{image.name}</Title>
+              <Title
+                headingLevel="h3"
+                style={{ marginBottom: "var(--pf-t--global--spacer--xs)" }}
+              >
+                {image.name}
+              </Title>
               <p>{image.description}</p>
             </DataListCell>,
             <DataListCell key={image.name + "-info"}>
@@ -56,7 +62,12 @@ export function ImageItem({ image }: ImageItemProps) {
           ]}
         />
       </DataListItemRow>
-      <DataListContent aria-label="Image details" isHidden={!isExpanded}>
+      <DataListContent
+        aria-label="Image details"
+        isHidden={!isExpanded}
+        className="image-details"
+      >
+        <Title headingLevel="h4">Use this image</Title>
         <DescriptionList>
           <DescriptionListGroup>
             <DescriptionListTerm>Latest image name</DescriptionListTerm>
@@ -72,29 +83,44 @@ export function ImageItem({ image }: ImageItemProps) {
               </ClipboardCopy>
             </DescriptionListDescription>
           </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Older tags</DescriptionListTerm>
-            <DescriptionListDescription>
-              <ul>
-                {image.tags.map((t) => {
-                  return (
-                    <li key={image.name + "-" + t.name}>
-                      <code>{t.name}</code>
-                      {t.arch.map((a) => {
-                        return (
-                          <>
-                            {" "}
-                            <Label isCompact>{a}</Label>
-                          </>
-                        );
-                      })}
-                    </li>
-                  );
-                })}
-              </ul>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
         </DescriptionList>
+        <Title headingLevel="h4">All tags</Title>
+        <Table variant="compact" borders={false} className="tags-table">
+          <Thead>
+            <Tr>
+              <Th>Name</Th>
+              <Th>Architectures</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {image.tags.toReversed().map((t) => {
+              return (
+                <Tr>
+                  <Td>
+                    <code>{t.name}</code>
+                  </Td>
+                  <Td>
+                    {t.arch.map((a) => {
+                      return (
+                        <>
+                          {" "}
+                          <Label isCompact>{a}</Label>
+                        </>
+                      );
+                    })}
+                  </Td>
+                  {image.latest == t.name && (
+                    <Td>
+                      <Label isCompact color="blue">
+                        latest
+                      </Label>
+                    </Td>
+                  )}
+                </Tr>
+              );
+            })}
+          </Tbody>
+        </Table>
       </DataListContent>
     </DataListItem>
   );

@@ -4,8 +4,8 @@
     "rootDir": ".",
     "outDir": "dist",
     "module": "esnext",
-    "target": "es5",
-    "lib": ["es6", "dom"],
+    "target": "es6",
+    "lib": ["es2023", "dom"],
     "sourceMap": true,
     "jsx": "react",
     "moduleResolution": "node",
@@ -24,11 +24,6 @@
     "importHelpers": true,
     "skipLibCheck": true
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.jsx",
-    "**/*.js"
-  ],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
   "exclude": ["node_modules"]
 }
