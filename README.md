@@ -12,7 +12,7 @@ A graphical hub to the CrowdStrike container registry, built on Foundry.
 1. In `ui/pages/sandbox`:
 
    1. Run `npm install` (only have to do this once)
-   1. Run `npm run build` to manually build on change
+   1. Run `npm run watch` to live rebuild on change (takes a few seconds)
 
 1. In root, run `foundry apps run`
 

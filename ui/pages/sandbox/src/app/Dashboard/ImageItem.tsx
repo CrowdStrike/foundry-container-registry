@@ -1,4 +1,4 @@
-import Image from "@app/shared/Image";
+import Image from "@app/types/Image";
 import {
   DataListItem,
   DataListItemRow,
@@ -81,7 +81,12 @@ export function ImageItem({ image }: ImageItemProps) {
                     <li key={image.name + "-" + t.name}>
                       <code>{t.name}</code>
                       {t.arch.map((a) => {
-                        return <Label>{a}</Label>;
+                        return (
+                          <>
+                            {" "}
+                            <Label isCompact>{a}</Label>
+                          </>
+                        );
                       })}
                     </li>
                   );
