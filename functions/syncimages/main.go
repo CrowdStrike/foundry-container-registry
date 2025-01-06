@@ -52,7 +52,6 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 	mux := fdk.NewMux()
 	mux.Post("/sync-images", fdk.HandlerFn(func(ctx context.Context, r fdk.Request) fdk.Response {
 		accessToken := r.AccessToken
-		startTime := time.Now()
 
 		client, cloud, err := newFalconClient(accessToken)
 		if err != nil {
@@ -76,27 +75,22 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 			}
 		}
 
-		var response ImageList
-		if err := json.Unmarshal(imageData, &response); err != nil {
-			logger.Error("failed to unmarshal image data", "error", err)
-			return fdk.Response{
-				Code: 500,
-				Body: fdk.JSON(map[string]interface{}{
-					"error": err.Error(),
-				}),
-			}
-		}
-		response.Updated = time.Now()
-		response.DurationMs = time.Since(startTime).Milliseconds()
-
 		// TODO: better way to determine we are running in a foundry function?
 		if accessToken != "" {
-			writeToCollection(client, response)
+			err = writeToCollection(client, imageData)
+			if err != nil {
+				return fdk.Response{
+					Code: 500,
+					Body: fdk.JSON(map[string]interface{}{
+						"error": err.Error(),
+					}),
+				}
+			}
 		}
 
 		return fdk.Response{
 			Code: 200,
-			Body: fdk.JSON(response),
+			Body: fdk.JSON(imageData),
 		}
 	}))
 	return mux
@@ -129,18 +123,19 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 }
 
 // getImages returns a list of images and tags from the CrowdStrike API.
-func getImages(client *client.CrowdStrikeAPISpecification, cloud string) ([]byte, error) {
+func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageList, error) {
 	regInfo := ImageList{}
+	startTime := time.Now()
 	ctx := context.Background()
 
 	user, err := registryLogin(ctx, client)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting Falcon CID: %v", err)
+		return ImageList{}, fmt.Errorf("Error getting Falcon CID: %v", err)
 	}
 
 	pass, err := registryToken(ctx, client)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting registry token: %v", err)
+		return ImageList{}, fmt.Errorf("Error getting registry token: %v", err)
 	}
 
 	sensorTypes := []falcon.SensorType{falcon.SidecarSensor, falcon.ImageSensor, falcon.KacSensor, falcon.NodeSensor}
@@ -157,14 +152,14 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) ([]byte
 
 		tags, err := getRepositoryTags(registryConfig{User: user, Pass: pass}, sensor)
 		if err != nil {
-			return nil, fmt.Errorf("Error listing repository tags for %v: %v", sensor, err)
+			return ImageList{}, fmt.Errorf("Error listing repository tags for %v: %v", sensor, err)
 		}
 
 		switch sensorType {
 		case falcon.ImageSensor:
 			iarTags, err := semverSort(tags)
 			if err != nil {
-				return nil, fmt.Errorf("Error sorting tags: %v", err)
+				return ImageList{}, fmt.Errorf("Error sorting tags: %v", err)
 			}
 
 			for _, tag := range iarTags {
@@ -180,7 +175,10 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) ([]byte
 		regInfo.Images = append(regInfo.Images, imageInfo)
 	}
 
-	return json.Marshal(regInfo)
+	regInfo.Updated = time.Now()
+	regInfo.DurationMs = time.Since(startTime).Milliseconds()
+
+	return regInfo, nil
 }
 
 // sensorImageInfo returns the name and description for the specified sensor type.

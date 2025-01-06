@@ -1,4 +1,4 @@
-module helloworld
+module syncimages
 
 go 1.22.0
 

@@ -1,7 +1,5 @@
 github.com/BurntSushi/toml v1.4.0 h1:kuoIxZQy2WRRk1pttg9asf+WVv6tWQuBNVmK8+nqPr0=
 github.com/BurntSushi/toml v1.4.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/CrowdStrike/foundry-fn-go v0.22.0 h1:Kf4bvlI3ohDWpzYyIb9lB46Mcd7TBII1ZLGmS7FQmPk=
-github.com/CrowdStrike/foundry-fn-go v0.22.0/go.mod h1:Z9VqkpBrvnv+lBmQ7MbTeIYkjPgikPswfpt90DQSLm4=
 github.com/CrowdStrike/foundry-fn-go v0.23.2 h1:6NgQ7kiD8gko9LCWtbK+/00+l3OtFwyl3/DnqAOhIXQ=
 github.com/CrowdStrike/foundry-fn-go v0.23.2/go.mod h1:Z9VqkpBrvnv+lBmQ7MbTeIYkjPgikPswfpt90DQSLm4=
 github.com/Masterminds/semver v1.5.0 h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3QEww=
