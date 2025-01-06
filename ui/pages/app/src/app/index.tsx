@@ -6,8 +6,7 @@ import { AppRoutes } from "@app/routes";
 import "@app/app.css";
 
 const App: React.FunctionComponent = () => (
-  // basename must match the name of this foundry page, as foundry always appends #<page>
-  <Router basename="sandbox">
+  <Router>
     <AppLayout>
       <AppRoutes />
     </AppLayout>

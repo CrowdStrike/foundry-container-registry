@@ -15,31 +15,15 @@ ignored:
   - ui/(extensions|pages)/.*?/tsconfig\..*\.json
   - ui/(extensions|pages)/.*?/.*?\.(md|log|lock|cjs)
 ui:
-  homepage: pages.dashboard
+  homepage: pages.app
   extensions: []
   pages:
-    dashboard:
-      id: a7a2c47c0905417ca6ccb7ca19e47265
-      name: dashboard
-      description: Overview of all available container images
-      path: ui/pages/dashboard/src/dist
-      entrypoint: ui/pages/dashboard/src/dist/index.html
-      content_security_policy:
-        connect-src: []
-        style-src: []
-        style-src-elem: []
-        script-src: []
-        form-action: []
-        img-src: []
-        media-src: []
-        object-src: []
-      permissions: []
-    sandbox:
+    app:
       id: 6d8239b2fd294f758cd805175bcff241
-      name: sandbox
-      description: ""
-      path: ui/pages/sandbox/dist
-      entrypoint: ui/pages/sandbox/dist/index.html
+      name: app
+      description: The multi-page app for Container Registry
+      path: ui/pages/app/dist
+      entrypoint: ui/pages/app/dist/index.html
       content_security_policy:
         connect-src: []
         style-src: []
@@ -57,11 +41,11 @@ ui:
       - path: dashboard
         name: Dashboard
         permissions: []
-        ref: pages.dashboard
-      - path: sandbox
-        name: Sandbox
+        ref: pages.app
+      - path: support
+        name: Support
         permissions: []
-        ref: pages.sandbox
+        ref: pages.app
 api_integrations: []
 rtr_scripts: []
 collections:
