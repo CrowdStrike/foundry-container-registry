@@ -22,8 +22,8 @@ ui:
       id: 6d8239b2fd294f758cd805175bcff241
       name: app
       description: The multi-page app for Container Registry
-      path: ui/pages/app/dist
-      entrypoint: ui/pages/app/dist/index.html
+      path: ui/pages/dist
+      entrypoint: ui/pages/dist/index.html
       content_security_policy:
         connect-src: []
         style-src: []
