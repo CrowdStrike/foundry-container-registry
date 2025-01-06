@@ -37,7 +37,7 @@ const ImageList: React.FunctionComponent = () => {
     setLoading(true);
     falcon!
       .cloudFunction({
-        name: "SyncImages",
+        name: "syncimages",
       })
       .post({
         path: "/sync-images",
