@@ -84,7 +84,7 @@ functions:
     name: SyncImages
     config: null
     description: Sync CRWD Images
-    path: functions/SyncImages
+    path: functions/syncimages
     environment_variables: {}
     handlers:
       - name: handler
