@@ -4,16 +4,7 @@ description: A graphical hub to the CrowdStrike container registry
 logo: https://assets.falcon.us-2.crowdstrike.com/apps/49ad42fb13104cc6a2d4bad53dec699f/containers-icon-160pxs.png
 manifest_version: "2023-05-09"
 ignored:
-  - ui/(extensions|pages)/[^\/]*?/public
-  - ui/(extensions|pages)/[^\/]*?/index.html
-  - ui/(extensions|pages)/[^\/]*?/favicon.ico
   - ui/(extensions|pages)(/.*?)/?node_modules
-  - ui/(extensions|pages)(/.*?)/?config
-  - ui/(extensions|pages)(/.*?)/?\.gitignore
-  - ui/(extensions|pages)(/.*?)/?package\.json
-  - ui/(extensions|pages)(/.*?)/?tsconfig\.json
-  - ui/(extensions|pages)(/.*?)/?tsconfig\..*\.json
-  - ui/(extensions|pages)(/.*?)/?.*?\.(md|log|lock|cjs)
 ui:
   homepage: pages.app
   extensions: []
