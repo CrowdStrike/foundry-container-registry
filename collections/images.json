@@ -22,6 +22,12 @@
           "repository": {
             "type": "string"
           },
+          "latest": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string"
+          },
           "tags": {
             "type": "array",
             "items": {

@@ -14,14 +14,14 @@ import (
 
 	fdk "github.com/CrowdStrike/foundry-fn-go"
 	"github.com/Masterminds/semver"
-	"github.com/containers/image/docker"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/types"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/client"
 	"github.com/crowdstrike/gofalcon/falcon/client/custom_storage"
 	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
 	"github.com/crowdstrike/gofalcon/falcon/client/sensor_download"
-	"github.com/distribution/reference"
 )
 
 type ImageList struct {
@@ -31,12 +31,13 @@ type ImageList struct {
 }
 
 type Image struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Registry    string `json:"registry"`
-	Repository  string `json:"repository"`
-	LatestTag   string `json:"latest"`
-	Tags        []Tag  `json:"tags"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	Registry     string `json:"registry"`
+	Repository   string `json:"repository"`
+	LatestTag    string `json:"latest"`
+	LatestDigest string `json:"digest"`
+	Tags         []Tag  `json:"tags"`
 }
 
 type Tag struct {
@@ -138,6 +139,8 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		return ImageList{}, fmt.Errorf("Error getting registry token: %v", err)
 	}
 
+	rc := registryConfig{User: user, Pass: pass}
+
 	sensorTypes := []falcon.SensorType{falcon.SidecarSensor, falcon.ImageSensor, falcon.KacSensor, falcon.NodeSensor}
 	for _, sensorType := range sensorTypes {
 		imageInfo := Image{}
@@ -150,7 +153,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		imageInfo.Name = name
 		imageInfo.Description = description
 
-		tags, err := getRepositoryTags(registryConfig{User: user, Pass: pass}, sensor)
+		tags, err := getRepositoryTags(rc, sensor)
 		if err != nil {
 			return ImageList{}, fmt.Errorf("Error listing repository tags for %v: %v", sensor, err)
 		}
@@ -172,6 +175,11 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		}
 
 		imageInfo.LatestTag = tags[len(tags)-1]
+		digest, err := getImageDigest(rc, imageInfo.Repository, imageInfo.LatestTag)
+		if err != nil {
+			return ImageList{}, fmt.Errorf("Error getting digest: %w", err)
+		}
+		imageInfo.LatestDigest = digest
 		regInfo.Images = append(regInfo.Images, imageInfo)
 	}
 
@@ -310,8 +318,8 @@ func getImageRef(sensor string) (types.ImageReference, error) {
 	return docker.NewReference(reference.TagNameOnly(ref))
 }
 
-// getRepositoryTags returns a list of tags for the specified image.
-func getRepositoryTags(rc registryConfig, image string) ([]string, error) {
+// dockerConfig returns the context and system context for the Docker client.
+func dockerConfig(rc registryConfig) (context.Context, *types.SystemContext) {
 	ctx := context.Background()
 	sysCtx := &types.SystemContext{}
 
@@ -324,6 +332,13 @@ func getRepositoryTags(rc registryConfig, image string) ([]string, error) {
 		}
 	}
 
+	return ctx, sysCtx
+}
+
+// getRepositoryTags returns a list of tags for the specified image.
+func getRepositoryTags(rc registryConfig, image string) ([]string, error) {
+	ctx, sysCtx := dockerConfig(rc)
+
 	imgRef, err := getImageRef(image)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating image reference: %v", err)
@@ -335,6 +350,24 @@ func getRepositoryTags(rc registryConfig, image string) ([]string, error) {
 	}
 
 	return tags, nil
+}
+
+// getImageDigest returns the digest for the specified image and tag.
+func getImageDigest(rc registryConfig, image string, tag string) (string, error) {
+	ctx, sysCtx := dockerConfig(rc)
+
+	image = fmt.Sprintf("//%s:%s", image, tag)
+	imgRef, err := docker.ParseReference(image)
+	if err != nil {
+		return "", fmt.Errorf("Error parsing reference: %w", err)
+	}
+
+	digest, err := docker.GetDigest(ctx, sysCtx, imgRef)
+	if err != nil {
+		return "", fmt.Errorf("Error getting digest: %w", err)
+	}
+
+	return digest.String(), nil
 }
 
 func writeToCollection(client *client.CrowdStrikeAPISpecification, images ImageList) error {
