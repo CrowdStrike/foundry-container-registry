@@ -4,12 +4,7 @@ A graphical hub to the CrowdStrike container registry, built on Foundry.
 
 ## Developing
 
-1. In `ui/pages/dashboard`:
-
-   1. Run `npm install` (only have to do this once)
-   1. Run `npm run watch` to live rebuild on change
-
-1. In `ui/pages/sandbox`:
+1. In `ui/pages`:
 
    1. Run `npm install` (only have to do this once)
    1. Run `npm run watch` to live rebuild on change (takes a few seconds)

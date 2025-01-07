@@ -37,7 +37,7 @@ const ImageList: React.FunctionComponent = () => {
     setLoading(true);
     falcon!
       .cloudFunction({
-        name: "SyncImages",
+        name: "syncimages",
       })
       .post({
         path: "/sync-images",
@@ -105,6 +105,7 @@ const ImageList: React.FunctionComponent = () => {
         if (!f.isConnected) {
           setErrorSafe("falcon.connect() completed but not connected");
         } else {
+          console.log(f);
           setFalcon(f);
         }
       })

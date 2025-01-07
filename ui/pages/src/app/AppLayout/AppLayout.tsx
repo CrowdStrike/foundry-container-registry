@@ -20,12 +20,21 @@ import {
 } from "@patternfly/react-core";
 import * as React from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import FalconApi from "@crowdstrike/foundry-js";
 
 interface IAppLayout {
   children: React.ReactNode;
 }
 
 const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
+  const falcon = new FalconApi();
+  try {
+    // (workaround) must connect to falcon in order to show iframe
+    falcon.connect();
+  } catch (error) {
+    console.error(error);
+  }
+
   const masthead = (
     <Masthead>
       <MastheadMain>
