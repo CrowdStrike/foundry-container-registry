@@ -39,6 +39,8 @@ A _deployment_ is essentially a development build. That development build is pro
 (i.e. made installable) via a _release_. The versioning in this GitHub repo match Foundry
 releases. Foundry supports semantic versioning for deployments, but we do not use that.
 
+**To deploy a build (either from `main` or a work branch):**
+
 1. In `ui/pages`: `npm run build`
 1. To deploy, in root: `foundry apps deploy`
 
@@ -46,7 +48,11 @@ releases. Foundry supports semantic versioning for deployments, but we do not us
    1. Add a brief change log, or if just preparing for a release, "preparing for vX.Y.Z"
    1. Preview the app and test
 
-1. Create a GitHub release
+**To deploy a release (only from `main`):**
+
+1. Merge any open PR's that are desired for this release, and follow the deployment steps above
+
+1. Create a GitHub release from `main`
 
    1. Determine the appropriate release version (major/minor/patch), keeping in mind that Foundry will generate a release version in the next step by incrementing the _previous Foundry release_ by 1 for either the major, minor, or patch part of the version
    1. Generate the changelog
