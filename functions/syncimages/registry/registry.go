@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/containers/image/v5/docker"
@@ -80,4 +81,11 @@ func (rc Config) GetImageDigest(image string, tag string) (string, error) {
 	}
 
 	return digest.String(), nil
+}
+
+// DockerConfigJson returns the Docker configuration JSON for the registry.
+func (rc Config) DockerConfigJson(registry string) string {
+	base64EncodedCreds := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`%s:%s`, rc.User, rc.Pass)))
+	base64EncodedAuth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"auths":{"%s":{"auth": "%s"}}}`, registry, base64EncodedCreds)))
+	return base64EncodedAuth
 }
