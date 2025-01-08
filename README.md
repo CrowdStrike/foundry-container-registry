@@ -35,9 +35,10 @@ Foundry functions don't have a "dev mode" so we test locally and then deploy:
 
 ## Deploy and release
 
-A _deployment_ is essentially a development build. That development build is promoted to production
-(i.e. made installable) via a _release_. The versioning in this GitHub repo match Foundry
-releases. Foundry supports semantic versioning for deployments, but we do not use that.
+A _deployment_ represents a development version of the software. This development version 
+can be promoted to production through a _release_ process, making it available for 
+installation. While Foundry supports semantic versioning for deployments, we do not utilize 
+this feature. The release versions in this GitHub repository correspond to Foundry releases.
 
 **To deploy a build (either from `main` or a work branch):**
 
