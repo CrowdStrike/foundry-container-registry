@@ -87,7 +87,6 @@ const ImageList: React.FunctionComponent = () => {
         return falcon.collection({ collection: "images" }).read("all");
       })
       .then((resp) => {
-        console.log(resp);
         const imageResp = resp as ImageCollectionResponse;
         setUpdated(imageResp.updated);
         setImages(imageResp.images);
@@ -105,7 +104,6 @@ const ImageList: React.FunctionComponent = () => {
         if (!f.isConnected) {
           setErrorSafe("falcon.connect() completed but not connected");
         } else {
-          console.log(f);
           setFalcon(f);
         }
       })

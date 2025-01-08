@@ -56,7 +56,7 @@ auth:
   roles: []
 functions:
   - id: 6d81202a95b74e118eb2c16351a03250
-    name: SyncImages
+    name: syncimages
     config: null
     description: Sync CRWD Images
     path: functions/syncimages
