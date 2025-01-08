@@ -1,27 +1,23 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
+	"log"
 	"log/slog"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
+	falconapi "syncimages/falcon"
+	"syncimages/registry"
+
 	fdk "github.com/CrowdStrike/foundry-fn-go"
 	"github.com/Masterminds/semver"
-	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/types"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/client"
-	"github.com/crowdstrike/gofalcon/falcon/client/custom_storage"
-	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
-	"github.com/crowdstrike/gofalcon/falcon/client/sensor_download"
 )
 
 type ImageList struct {
@@ -50,6 +46,22 @@ func main() {
 }
 
 func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handler {
+	debug := false
+	var err error
+	envDebug := os.Getenv("DEBUG")
+
+	if envDebug != "" {
+		debug, err = strconv.ParseBool(envDebug)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if debug {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+		slog.Debug("DEBUG mode is enabled. DO NOT USE IN PRODUCTION.")
+	}
+
 	mux := fdk.NewMux()
 	mux.Post("/sync-images", fdk.HandlerFn(func(ctx context.Context, r fdk.Request) fdk.Response {
 		accessToken := r.AccessToken
@@ -78,7 +90,7 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 
 		// TODO: better way to determine we are running in a foundry function?
 		if accessToken != "" {
-			err = writeToCollection(client, imageData)
+			err = falconapi.WriteToCollection(client, imageData)
 			if err != nil {
 				return fdk.Response{
 					Code: 500,
@@ -119,6 +131,8 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 		apiConfig.ClientSecret = os.Getenv("FALCON_CLIENT_SECRET")
 	}
 
+	slog.Debug("Creating Falcon client", "client_id", apiConfig.ClientId, "client_secret", apiConfig.ClientSecret, "cloud", cloud, "access_token", apiConfig.AccessToken)
+
 	client, err := falcon.NewClient(apiConfig)
 	return client, cloud, err
 }
@@ -129,22 +143,24 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 	startTime := time.Now()
 	ctx := context.Background()
 
-	user, err := registryLogin(ctx, client)
+	user, err := falconapi.RegistryLogin(ctx, client)
 	if err != nil {
 		return ImageList{}, fmt.Errorf("Error getting Falcon CID: %v", err)
 	}
 
-	pass, err := registryToken(ctx, client)
+	pass, err := falconapi.RegistryToken(ctx, client)
 	if err != nil {
 		return ImageList{}, fmt.Errorf("Error getting registry token: %v", err)
 	}
 
-	rc := registryConfig{User: user, Pass: pass}
+	slog.Debug("Registry access", "user", user, "pass", pass)
+	rc := registry.Config{User: user, Pass: pass}
 
-	sensorTypes := []falcon.SensorType{falcon.SidecarSensor, falcon.ImageSensor, falcon.KacSensor, falcon.NodeSensor}
+	sensorTypes := []falcon.SensorType{falcon.SidecarSensor, falcon.ImageSensor, falcon.KacSensor, falcon.NodeSensor, "falcon-sensor"}
 	for _, sensorType := range sensorTypes {
 		imageInfo := Image{}
 		sensor := falcon.FalconContainerSensorImageURI(falcon.Cloud(cloud), sensorType)
+		slog.Debug("Sensor URI returned from API", "sensor", sensor)
 
 		imageInfo.Registry = strings.Split(sensor, "/")[0]
 		imageInfo.Repository = sensor
@@ -153,7 +169,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		imageInfo.Name = name
 		imageInfo.Description = description
 
-		tags, err := getRepositoryTags(rc, sensor)
+		tags, err := rc.GetRepositoryTags(sensor)
 		if err != nil {
 			return ImageList{}, fmt.Errorf("Error listing repository tags for %v: %v", sensor, err)
 		}
@@ -175,12 +191,15 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		}
 
 		imageInfo.LatestTag = tags[len(tags)-1]
-		digest, err := getImageDigest(rc, imageInfo.Repository, imageInfo.LatestTag)
+		digest, err := rc.GetImageDigest(imageInfo.Repository, imageInfo.LatestTag)
 		if err != nil {
 			return ImageList{}, fmt.Errorf("Error getting digest: %w", err)
 		}
+
 		imageInfo.LatestDigest = digest
 		regInfo.Images = append(regInfo.Images, imageInfo)
+		slog.Debug("Image info", "name", imageInfo.Name, "description", imageInfo.Description, "registry", imageInfo.Registry, "repository", imageInfo.Repository, "latest_tag", imageInfo.LatestTag, "latest_digest", imageInfo.LatestDigest)
+		slog.Debug("Tags", "tags", imageInfo.Tags)
 	}
 
 	regInfo.Updated = time.Now()
@@ -242,148 +261,4 @@ func semverSort(tags []string) ([]string, error) {
 	}
 
 	return tags, nil
-}
-
-// registryLogin gets the registry login from the CrowdStrike API using the SensorDownload API.
-func registryLogin(ctx context.Context, client *client.CrowdStrikeAPISpecification) (string, error) {
-	user, err := getCID(ctx, client)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("fc-%s", strings.ToLower(strings.Split(user, "-")[0])), nil
-}
-
-// getCID gets the Falcon CID from the CrowdStrike API using the SensorDownload API.
-func getCID(ctx context.Context, client *client.CrowdStrikeAPISpecification) (string, error) {
-	response, err := client.SensorDownload.GetSensorInstallersCCIDByQuery(&sensor_download.GetSensorInstallersCCIDByQueryParams{
-		Context: ctx,
-	})
-	if err != nil {
-		return "", fmt.Errorf("Could not get Falcon CID from CrowdStrike Falcon API: %v", err)
-	}
-	payload := response.GetPayload()
-	if err = falcon.AssertNoError(payload.Errors); err != nil {
-		return "", fmt.Errorf("Error reported when getting Falcon CID from CrowdStrike Falcon API: %v", err)
-	}
-	if len(payload.Resources) != 1 {
-		return "", fmt.Errorf("Failed to get Falcon CID: Unexpected API response: %v", payload.Resources)
-	}
-
-	return payload.Resources[0], nil
-}
-
-// registryToken gets the registry token from the CrowdStrike API using the FalconContainer API.
-func registryToken(ctx context.Context, client *client.CrowdStrikeAPISpecification) (string, error) {
-	res, err := client.FalconContainer.GetCredentials(&falcon_container.GetCredentialsParams{
-		Context: ctx,
-	})
-	if err != nil {
-		return "", err
-	}
-	payload := res.GetPayload()
-	if err = falcon.AssertNoError(payload.Errors); err != nil {
-		return "", err
-	}
-	resources := payload.Resources
-	resourcesList := resources
-	if len(resourcesList) != 1 {
-		return "", fmt.Errorf("Expected to receive exactly one token, but got %d\n", len(resourcesList))
-	}
-	valueString := *resourcesList[0].Token
-	if valueString == "" {
-		return "", fmt.Errorf("Received empty token")
-	}
-	return valueString, nil
-}
-
-// registryConfig contains the user, password, and token for the registry.
-type registryConfig struct {
-	User  string
-	Pass  string
-	Token string
-}
-
-// getImageRef returns a reference to the specified image.
-func getImageRef(sensor string) (types.ImageReference, error) {
-	ref, err := reference.ParseNormalizedNamed(sensor)
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing reference: %w", err)
-	}
-
-	if !reference.IsNameOnly(ref) {
-		return nil, fmt.Errorf("No tag or digest allowed in reference: %v", ref.String())
-	}
-
-	return docker.NewReference(reference.TagNameOnly(ref))
-}
-
-// dockerConfig returns the context and system context for the Docker client.
-func dockerConfig(rc registryConfig) (context.Context, *types.SystemContext) {
-	ctx := context.Background()
-	sysCtx := &types.SystemContext{}
-
-	if rc.User != "" {
-		sysCtx = &types.SystemContext{
-			DockerAuthConfig: &types.DockerAuthConfig{
-				Username: rc.User,
-				Password: rc.Pass,
-			},
-		}
-	}
-
-	return ctx, sysCtx
-}
-
-// getRepositoryTags returns a list of tags for the specified image.
-func getRepositoryTags(rc registryConfig, image string) ([]string, error) {
-	ctx, sysCtx := dockerConfig(rc)
-
-	imgRef, err := getImageRef(image)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating image reference: %v", err)
-	}
-
-	tags, err := docker.GetRepositoryTags(ctx, sysCtx, imgRef)
-	if err != nil {
-		return nil, fmt.Errorf("Error listing repository tags: %w", err)
-	}
-
-	return tags, nil
-}
-
-// getImageDigest returns the digest for the specified image and tag.
-func getImageDigest(rc registryConfig, image string, tag string) (string, error) {
-	ctx, sysCtx := dockerConfig(rc)
-
-	image = fmt.Sprintf("//%s:%s", image, tag)
-	imgRef, err := docker.ParseReference(image)
-	if err != nil {
-		return "", fmt.Errorf("Error parsing reference: %w", err)
-	}
-
-	digest, err := docker.GetDigest(ctx, sysCtx, imgRef)
-	if err != nil {
-		return "", fmt.Errorf("Error getting digest: %w", err)
-	}
-
-	return digest.String(), nil
-}
-
-func writeToCollection(client *client.CrowdStrikeAPISpecification, images ImageList) error {
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(images); err != nil {
-		return fmt.Errorf("Error encoding image list: %v", err)
-	}
-
-	_, err := client.CustomStorage.Upload(&custom_storage.UploadParams{
-		CollectionName: "images",
-		ObjectKey:      "all",
-		Body:           io.NopCloser(&buf),
-	})
-	if err != nil {
-		return fmt.Errorf("Error storing image list in collection: %v", err)
-	}
-
-	return nil
 }
