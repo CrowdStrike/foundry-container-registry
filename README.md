@@ -32,3 +32,26 @@ Foundry functions don't have a "dev mode" so we test locally and then deploy:
          "url": "/sync-images"
       }'
    ```
+
+## Deploy and release
+
+A _deployment_ is essentially a development build. That development build is promoted to production
+(i.e. made installable) via a _release_. The versioning in this GitHub repo match Foundry
+releases. Foundry supports semantic versioning for deployments, but we do not use that.
+
+1. In `ui/pages`: `npm run build`
+1. To deploy, in root: `foundry apps deploy`
+
+   1. Select "Patch" (as a matter of convention, we _do not_ use semantic versioning with deployments)
+   1. Add a brief change log, or if just preparing for a release, "preparing for vX.Y.Z"
+   1. Preview the app and test
+
+1. Create a GitHub release
+
+   1. Determine the appropriate release version (major/minor/patch), keeping in mind that Foundry will generate a release version in the next step by incrementing the _previous Foundry release_ by 1 for either the major, minor, or patch part of the version
+   1. Generate the changelog
+
+1. To release, in root: `foundry apps release`
+
+   1. Choose the appropriate major/minor/patch to match the versioning choice above
+   1. For release notes, provide the link to the GitHub release
