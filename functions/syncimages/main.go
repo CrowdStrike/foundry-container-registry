@@ -33,6 +33,9 @@ type Image struct {
 	Repository   string `json:"repository"`
 	LatestTag    string `json:"latest"`
 	LatestDigest string `json:"digest"`
+	Login        string `json:"login"`
+	Password     string `json:"password"`
+	DockerJson   string `json:"dockerAuthConfig"`
 	Tags         []Tag  `json:"tags"`
 }
 
@@ -143,27 +146,33 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 	startTime := time.Now()
 	ctx := context.Background()
 
-	user, err := falconapi.RegistryLogin(ctx, client)
-	if err != nil {
-		return ImageList{}, fmt.Errorf("Error getting Falcon CID: %v", err)
-	}
-
-	pass, err := falconapi.RegistryToken(ctx, client)
-	if err != nil {
-		return ImageList{}, fmt.Errorf("Error getting registry token: %v", err)
-	}
-
-	slog.Debug("Registry access", "user", user, "pass", pass)
-	rc := registry.Config{User: user, Pass: pass}
-
-	sensorTypes := []falcon.SensorType{falcon.SidecarSensor, falcon.ImageSensor, falcon.KacSensor, falcon.NodeSensor, "falcon-sensor"}
+	sensorTypes := []falcon.SensorType{falcon.SidecarSensor, falcon.ImageSensor, falcon.KacSensor, falcon.NodeSensor}
 	for _, sensorType := range sensorTypes {
 		imageInfo := Image{}
+		user, err := falconapi.RegistryLogin(ctx, client)
+		if err != nil {
+			return ImageList{}, fmt.Errorf("Error getting Falcon CID: %v", err)
+		}
+
+		pass, err := falconapi.RegistryToken(ctx, client)
+		if err != nil {
+			return ImageList{}, fmt.Errorf("Error getting registry token: %v", err)
+		}
+
+		slog.Debug("Registry access", "user", user, "pass", pass)
+		rc := registry.Config{User: user, Pass: pass}
+		imageInfo.Login = user
+		imageInfo.Password = pass
+
 		sensor := falcon.FalconContainerSensorImageURI(falcon.Cloud(cloud), sensorType)
 		slog.Debug("Sensor URI returned from API", "sensor", sensor)
 
 		imageInfo.Registry = strings.Split(sensor, "/")[0]
 		imageInfo.Repository = sensor
+
+		dockerConfigJson := rc.DockerConfigJson(imageInfo.Registry)
+		slog.Debug("Get DockerConfigJson", "rc.DockerConfigJson", dockerConfigJson)
+		imageInfo.DockerJson = dockerConfigJson
 
 		name, description := sensorImageInfo(sensorType)
 		imageInfo.Name = name
