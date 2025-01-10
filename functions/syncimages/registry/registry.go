@@ -21,11 +21,11 @@ type Config struct {
 func getImageRef(sensor string) (types.ImageReference, error) {
 	ref, err := reference.ParseNormalizedNamed(sensor)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing reference: %w", err)
+		return nil, fmt.Errorf("error parsing reference: %w", err)
 	}
 
 	if !reference.IsNameOnly(ref) {
-		return nil, fmt.Errorf("No tag or digest allowed in reference: %v", ref.String())
+		return nil, fmt.Errorf("no tag or digest allowed in reference: %v", ref.String())
 	}
 
 	return docker.NewReference(reference.TagNameOnly(ref))
@@ -54,12 +54,12 @@ func (rc Config) GetRepositoryTags(image string) ([]string, error) {
 
 	imgRef, err := getImageRef(image)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating image reference: %v", err)
+		return nil, fmt.Errorf("error creating image reference: %v", err)
 	}
 
 	tags, err := docker.GetRepositoryTags(ctx, sysCtx, imgRef)
 	if err != nil {
-		return nil, fmt.Errorf("Error listing repository tags: %w", err)
+		return nil, fmt.Errorf("error listing repository tags: %w", err)
 	}
 
 	return tags, nil
@@ -72,12 +72,12 @@ func (rc Config) GetImageDigest(image string, tag string) (string, error) {
 	image = fmt.Sprintf("//%s:%s", image, tag)
 	imgRef, err := docker.ParseReference(image)
 	if err != nil {
-		return "", fmt.Errorf("Error parsing reference: %w", err)
+		return "", fmt.Errorf("error parsing reference: %w", err)
 	}
 
 	digest, err := docker.GetDigest(ctx, sysCtx, imgRef)
 	if err != nil {
-		return "", fmt.Errorf("Error getting digest: %w", err)
+		return "", fmt.Errorf("error getting digest: %w", err)
 	}
 
 	return digest.String(), nil

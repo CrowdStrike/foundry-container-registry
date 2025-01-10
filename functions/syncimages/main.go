@@ -145,18 +145,21 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 	regInfo := ImageList{}
 	startTime := time.Now()
 	ctx := context.Background()
-
-	sensorTypes := []falcon.SensorType{falcon.SidecarSensor, falcon.ImageSensor, falcon.KacSensor, falcon.NodeSensor}
-	for _, sensorType := range sensorTypes {
+	// get CID here once
+	cid, err := falconapi.GetCID(ctx, client)
+	if err != nil {
+		return ImageList{}, fmt.Errorf("error getting Falcon CID: %v", err)
+	}
+	// iterate through each sensor type to get registry tokens and image info
+	for _, sensorType := range allSensorTypes() {
 		imageInfo := Image{}
-		user, err := falconapi.RegistryLogin(ctx, client)
-		if err != nil {
-			return ImageList{}, fmt.Errorf("Error getting Falcon CID: %v", err)
-		}
+		prefix := loginPrefix(sensorType)
+		user := falconapi.RegistryLogin(prefix, cid)
 
-		pass, err := falconapi.RegistryToken(ctx, client)
+		slog.Debug("Sensor type", "sensor", sensorType)
+		pass, err := falconapi.RegistryToken(ctx, client, sensorType)
 		if err != nil {
-			return ImageList{}, fmt.Errorf("Error getting registry token: %v", err)
+			return ImageList{}, fmt.Errorf("error getting registry token: %v", err)
 		}
 
 		slog.Debug("Registry access", "user", user, "pass", pass)
@@ -180,17 +183,17 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 
 		tags, err := rc.GetRepositoryTags(sensor)
 		if err != nil {
-			return ImageList{}, fmt.Errorf("Error listing repository tags for %v: %v", sensor, err)
+			return ImageList{}, fmt.Errorf("error listing repository tags for %v: %v", sensor, err)
 		}
 
 		switch sensorType {
-		case falcon.ImageSensor:
-			iarTags, err := semverSort(tags)
+		case falcon.ImageSensor, falcon.FCSCli, falcon.Snapshot, falcon.SHRAController, falcon.SHRAExecutor:
+			imageTags, err := semverSort(tags)
 			if err != nil {
-				return ImageList{}, fmt.Errorf("Error sorting tags: %v", err)
+				return ImageList{}, fmt.Errorf("error sorting tags: %v", err)
 			}
 
-			for _, tag := range iarTags {
+			for _, tag := range imageTags {
 				imageInfo.Tags = append(imageInfo.Tags, Tag{Name: tag, Arch: []string{"x86_64"}})
 			}
 		default:
@@ -202,7 +205,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		imageInfo.LatestTag = tags[len(tags)-1]
 		digest, err := rc.GetImageDigest(imageInfo.Repository, imageInfo.LatestTag)
 		if err != nil {
-			return ImageList{}, fmt.Errorf("Error getting digest: %w", err)
+			return ImageList{}, fmt.Errorf("error getting digest: %w", err)
 		}
 
 		imageInfo.LatestDigest = digest
@@ -225,16 +228,28 @@ func sensorImageInfo(sensorType falcon.SensorType) (string, string) {
 	switch sensorType {
 	case falcon.ImageSensor:
 		name = "Falcon Image Analyzer"
-		description = "The Image Sensor is a container image that can be deployed to scan container images for vulnerabilities and misconfigurations."
+		description = "The Falcon Image Analyzer container image performs real-time vulnerability assessment of container images as they are launched in your Kubernetes environment. It ensures comprehensive container security by scanning all running images, including those from registries not directly connected to CrowdStrike."
 	case falcon.SidecarSensor:
 		name = "Falcon Container Sensor"
-		description = "The Falcon Container Sensor is a container image that can be deployed as a sidecar to monitor pods and containers."
+		description = "The Falcon Container Sensor container image provides runtime security for containerized workloads in Kubernetes environments by operating as a sidecar container. It's specifically designed to protect pods in environments where kernel-level access isn't available, such as AWS Fargate or Microsoft ACI."
 	case falcon.KacSensor:
 		name = "Falcon Kubernetes Admission Controller"
-		description = "The Kubernetes Agentless Container Sensor is a container image that can be deployed as a Kubernetes Admission Controller to monitor the container runtime and the containers running in a Kubernetes cluster."
+		description = "The Falcon Kubernetes Admission Controller container image enforces security policies and validates container images before they are deployed to your Kubernetes cluster. It integrates with CrowdStrike's container security to provide runtime protection and vulnerability management."
 	case falcon.NodeSensor:
 		name = "Falcon Linux Sensor"
-		description = "The Node Sensor is a container image that can be deployed as a daemonset to monitor the container runtime and the containers running on the host."
+		description = "The Falcon Linux Sensor container image, deployed as a DaemonSet, provides advanced threat protection and workload visibility across all your Kubernetes nodes. It delivers kernel-level security for both the Linux host operating system and its running containers, with real-time threat detection and prevention capabilities."
+	case falcon.Snapshot:
+		name = "Snapshot Scanner"
+		description = "The Snapshot scanner container image provides agentless protection of Linux AWS EC2 instances by detecting installed applications, OS-level and software composition analysis (SCA) vulnerabilities, malware, and vulnerable running containers."
+	case falcon.FCSCli:
+		name = "FCS CLI"
+		description = "The Falcon Cloud Security (FCS) CLI container image enables security assessment of Infrastructure as Code (IaC) before deployment, detecting misconfigurations and embedded secrets."
+	case falcon.SHRAController:
+		name = "Self-hosted Registry Assessment Jobs Controller"
+		description = "Self-hosted Registry Assessment (SHRA) Jobs Controller orchestrates and manages image scanning tasks for self-hosted container registries. It coordinates with the Scanner Executor containers to ensure systematic assessment of images, providing vulnerability scanning for private and air-gapped environments."
+	case falcon.SHRAExecutor:
+		name = "Self-hosted Registry Assessment Executor"
+		description = "Self-hosted Registry Assessment (SHRA) Executor performs the actual vulnerability scanning of container images in self-hosted registries. Deployed by the Jobs Controller, it analyzes images for security risks and compliance issues, then reports findings back to the CrowdStrike Cloud."
 	}
 	return name, description
 }
@@ -259,7 +274,7 @@ func semverSort(tags []string) ([]string, error) {
 	for i, r := range tags {
 		v, err := semver.NewVersion(r)
 		if err != nil {
-			return []string{}, fmt.Errorf("Error parsing version: %s", err)
+			return []string{}, fmt.Errorf("error parsing version: %s", err)
 		}
 		sv[i] = v
 	}
@@ -270,4 +285,30 @@ func semverSort(tags []string) ([]string, error) {
 	}
 
 	return tags, nil
+}
+
+// allSensorTypes returns all sensor types.
+func allSensorTypes() []falcon.SensorType {
+	return []falcon.SensorType{
+		falcon.NodeSensor,
+		falcon.SidecarSensor,
+		falcon.ImageSensor,
+		falcon.KacSensor,
+		falcon.Snapshot,
+		// falcon.FCSCli,
+		falcon.SHRAController,
+		falcon.SHRAExecutor,
+	}
+}
+
+// loginPrefix returns the prefix for the registry login based on the sensor type.
+func loginPrefix(sensor falcon.SensorType) string {
+	switch sensor {
+	case falcon.Snapshot:
+		return "fs"
+	case falcon.FCSCli:
+		return "fh"
+	default:
+		return "fc"
+	}
 }
