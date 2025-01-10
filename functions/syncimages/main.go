@@ -295,7 +295,7 @@ func allSensorTypes() []falcon.SensorType {
 		falcon.ImageSensor,
 		falcon.KacSensor,
 		falcon.Snapshot,
-		// falcon.FCSCli,
+		falcon.FCSCli,
 		falcon.SHRAController,
 		falcon.SHRAExecutor,
 	}
