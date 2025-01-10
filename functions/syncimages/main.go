@@ -231,7 +231,7 @@ func sensorImageInfo(sensorType falcon.SensorType) (string, string) {
 		description = "The Falcon Image Analyzer container image performs real-time vulnerability assessment of container images as they are launched in your Kubernetes environment. It ensures comprehensive container security by scanning all running images, including those from registries not directly connected to CrowdStrike."
 	case falcon.SidecarSensor:
 		name = "Falcon Container Sensor"
-		description = "The Falcon Container Sensor container image provides runtime security for containerized workloads in Kubernetes environments by operating as an unprivileged sidecar container. It's specifically designed to protect pods in environments where kernel-level access isn't available, such as AWS Fargate or Microsoft ACI."
+		description = "The Falcon Container Sensor container image provides runtime security for containerized workloads in Kubernetes environments by operating as a sidecar container. It's specifically designed to protect pods in environments where kernel-level access isn't available, such as AWS Fargate or Microsoft ACI."
 	case falcon.KacSensor:
 		name = "Falcon Kubernetes Admission Controller"
 		description = "The Falcon Kubernetes Admission Controller container image enforces security policies and validates container images before they are deployed to your Kubernetes cluster. It integrates with CrowdStrike's container security to provide runtime protection and vulnerability management."
