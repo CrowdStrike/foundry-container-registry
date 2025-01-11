@@ -36,3 +36,7 @@ body,
 .image-details h4 {
   margin-bottom: var(--pf-t--global--spacer--md);
 }
+
+.pf-v5-u-my-md {
+  padding-top: inherit;
+}

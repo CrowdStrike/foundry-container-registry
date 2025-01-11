@@ -10,6 +10,7 @@ export default interface Image {
   dockerAuthConfig: string;
   tags: {
     name: string;
+    digest: string;
     arch: string[];
   }[];
 }

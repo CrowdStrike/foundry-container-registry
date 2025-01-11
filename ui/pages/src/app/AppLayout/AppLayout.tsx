@@ -46,9 +46,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem align={{ default: "alignEnd" }}>
-              <Button variant="secondary" isDisabled>
+              {/* <Button variant="secondary" isDisabled>
                 Copy login command
-              </Button>
+              </Button> */}
             </ToolbarItem>
           </ToolbarContent>
         </Toolbar>
