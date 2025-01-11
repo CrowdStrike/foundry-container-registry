@@ -40,8 +40,9 @@ type Image struct {
 }
 
 type Tag struct {
-	Name string   `json:"name"`
-	Arch []string `json:"arch"`
+	Name   string   `json:"name"`
+	Digest string   `json:"digest"`
+	Arch   []string `json:"arch"`
 }
 
 func main() {
@@ -194,11 +195,21 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 			}
 
 			for _, tag := range imageTags {
-				imageInfo.Tags = append(imageInfo.Tags, Tag{Name: tag, Arch: []string{"x86_64"}})
+				digest, err := rc.GetImageDigest(imageInfo.Repository, tag)
+				if err != nil {
+					return ImageList{}, fmt.Errorf("error getting digest: %w", err)
+				}
+
+				imageInfo.Tags = append(imageInfo.Tags, Tag{Name: tag, Digest: digest, Arch: archInTag(tag)})
 			}
 		default:
 			for _, tag := range tags {
-				imageInfo.Tags = append(imageInfo.Tags, Tag{Name: tag, Arch: archInTag(tag)})
+				digest, err := rc.GetImageDigest(imageInfo.Repository, tag)
+				if err != nil {
+					return ImageList{}, fmt.Errorf("error getting digest: %w", err)
+				}
+
+				imageInfo.Tags = append(imageInfo.Tags, Tag{Name: tag, Digest: digest, Arch: archInTag(tag)})
 			}
 		}
 
