@@ -8,7 +8,7 @@ require (
 	github.com/CrowdStrike/foundry-fn-go v0.23.2
 	github.com/Masterminds/semver v1.5.0
 	github.com/containers/image/v5 v5.33.0
-	github.com/crowdstrike/gofalcon v0.9.0
+	github.com/crowdstrike/gofalcon v0.10.0
 )
 
 require (
@@ -55,7 +55,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c // indirect
-	golang.org/x/oauth2 v0.24.0 // indirect
+	golang.org/x/oauth2 v0.25.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
