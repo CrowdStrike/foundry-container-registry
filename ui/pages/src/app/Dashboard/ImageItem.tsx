@@ -13,8 +13,15 @@ import {
   DataListContent,
   ClipboardCopy,
   Label,
+  ActionList,
+  ActionListItem,
+  Button,
+  Modal,
+  ModalBody,
+  Stack,
+  StackItem,
 } from "@patternfly/react-core";
-import { CubeIcon } from "@patternfly/react-icons";
+import { CubeIcon, DownloadIcon } from "@patternfly/react-icons";
 import { Table, Thead, Tr, Th, Td, Tbody } from "@patternfly/react-table";
 import React from "react";
 
@@ -24,8 +31,17 @@ interface ImageItemProps {
 
 export function ImageItem({ image }: ImageItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [selectedTag, setSelectedTag] = React.useState<string>("");
 
-  const latestImageName = `${image.repository}:${image.latest}`;
+  const handleModalToggle = (_event: KeyboardEvent | React.MouseEvent) => {
+    setIsModalOpen(!isModalOpen);
+  };
+
+  const handleDownloadClick = (tagName: string) => {
+    setSelectedTag(tagName);
+    setIsModalOpen(true);
+  };
 
   return (
     <DataListItem isExpanded={isExpanded}>
@@ -43,7 +59,7 @@ export function ImageItem({ image }: ImageItemProps) {
             <DataListCell key={image.name + "-title"}>
               <Title
                 headingLevel="h3"
-                style={{ marginBottom: "var(--pf-t--global--spacer--xs)" }}
+                style={{ marginBottom: "var(--pf-global--spacer--xs)" }}
               >
                 {image.name}
               </Title>
@@ -54,7 +70,29 @@ export function ImageItem({ image }: ImageItemProps) {
                 <DescriptionListGroup>
                   <DescriptionListTerm>Latest tag</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <code>{image.latest}</code>
+                    <ClipboardCopy
+                      isReadOnly
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      variant="inline-compact"
+                      isCode={true}
+                    >
+                      {image.latest}
+                    </ClipboardCopy>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Latest digest</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <ClipboardCopy
+                      isReadOnly
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      variant="inline-compact"
+                      isCode={true}
+                    >
+                      {image.digest}
+                    </ClipboardCopy>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               </DescriptionList>
@@ -67,61 +105,83 @@ export function ImageItem({ image }: ImageItemProps) {
         isHidden={!isExpanded}
         className="image-details"
       >
-        <Title headingLevel="h4">Use this image</Title>
-        <DescriptionList>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Latest image name</DescriptionListTerm>
-            <DescriptionListDescription>
+        <Table variant="compact" borders={false} className="tags-table">
+          <Thead>
+            <Tr>
+              <Th>Tags</Th>
+              <Th style={{ width: "50%" }}>Architectures</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {image.tags.toReversed().map((t) => (
+              <Tr key={t.name}>
+                <Td>
+                  <code>{t.name}</code>
+                </Td>
+                <Td>
+                  {t.arch.map((a) => (
+                    <Label key={`${t.name}-${a}`} isCompact>
+                      {a}
+                    </Label>
+                  ))}
+                </Td>
+                <Td>
+                  <ActionList isIconList>
+                    <ActionListItem>
+                      <Button
+                        variant="plain"
+                        id="fa-download"
+                        aria-label="download icon button"
+                        icon={<DownloadIcon />}
+                        onClick={() => handleDownloadClick(t.name)}
+                      />
+                    </ActionListItem>
+                  </ActionList>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </DataListContent>
+      {/* Need to Keep Modal out of the Table mapping to prevent multiple modals being created per tag */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleModalToggle}
+        variant="medium"
+        appendTo={document.body}
+        aria-label="Pull command modal"
+        style={{ minWidth: "fit-content", maxWidth: "100ch" }}
+      >
+        <ModalBody id="modal-box-body-custom-focus">
+          <Stack hasGutter>
+            <StackItem>
+              <Title headingLevel="h4">Docker</Title>
               <ClipboardCopy
                 isReadOnly
                 hoverTip="Copy"
                 clickTip="Copied"
                 variant="inline-compact"
-                isCode={true}
+                isCode
               >
-                {latestImageName}
+                {`docker pull ${image.repository}:${selectedTag}`}
               </ClipboardCopy>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        </DescriptionList>
-        <Title headingLevel="h4">All tags</Title>
-        <Table variant="compact" borders={false} className="tags-table">
-          <Thead>
-            <Tr>
-              <Th>Name</Th>
-              <Th>Architectures</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {image.tags.toReversed().map((t) => {
-              return (
-                <Tr>
-                  <Td>
-                    <code>{t.name}</code>
-                  </Td>
-                  <Td>
-                    {t.arch.map((a) => {
-                      return (
-                        <>
-                          {" "}
-                          <Label isCompact>{a}</Label>
-                        </>
-                      );
-                    })}
-                  </Td>
-                  {image.latest == t.name && (
-                    <Td>
-                      <Label isCompact color="blue">
-                        latest
-                      </Label>
-                    </Td>
-                  )}
-                </Tr>
-              );
-            })}
-          </Tbody>
-        </Table>
-      </DataListContent>
+            </StackItem>
+
+            <StackItem>
+              <Title headingLevel="h4">Podman</Title>
+              <ClipboardCopy
+                isReadOnly
+                hoverTip="Copy"
+                clickTip="Copied"
+                variant="inline-compact"
+                isCode
+              >
+                {`podman pull ${image.repository}:${selectedTag}`}
+              </ClipboardCopy>
+            </StackItem>
+          </Stack>
+        </ModalBody>
+      </Modal>
     </DataListItem>
   );
 }
