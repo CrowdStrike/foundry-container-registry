@@ -1,38 +1,27 @@
 import Image from "@app/types/Image";
 import {
+  Button,
+  DataListCell,
+  DataListContent,
   DataListItem,
+  DataListItemCells,
   DataListItemRow,
   DataListToggle,
-  DataListItemCells,
-  DataListCell,
-  Title,
   DescriptionList,
+  DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  DescriptionListDescription,
-  DataListContent,
-  ClipboardCopy,
   Label,
-  ActionList,
-  ActionListItem,
-  Button,
   Modal,
   ModalBody,
-  Stack,
-  StackItem,
   Pagination,
   PaginationVariant,
-  Content,
-  ContentVariants,
-  Divider,
+  Stack,
+  StackItem,
+  Title,
 } from "@patternfly/react-core";
-import {
-  CubeIcon,
-  DownloadIcon,
-  EyeIcon,
-  EyeSlashIcon,
-} from "@patternfly/react-icons";
-import { Table, Thead, Tr, Th, Td, Tbody } from "@patternfly/react-table";
+import { CubeIcon, EyeIcon, EyeSlashIcon } from "@patternfly/react-icons";
+import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import React from "react";
 
 interface ImageItemProps {
@@ -78,6 +67,14 @@ export function ImageItem({ image }: ImageItemProps) {
     setPage(newPage);
   };
 
+  // function shortDigest(longDigest : string) {
+  //   if (longDigest.length < 19) {
+  //     return longDigest;
+  //   } else {
+  //     return shortDigest.substring(0, 19);
+  //   }
+  // }
+
   // Calculate current page items
   const reversedTags = [...image.tags].reverse();
   const start = (page - 1) * perPage;
@@ -111,29 +108,13 @@ export function ImageItem({ image }: ImageItemProps) {
                 <DescriptionListGroup>
                   <DescriptionListTerm>Latest tag</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <ClipboardCopy
-                      isReadOnly
-                      hoverTip="Copy"
-                      clickTip="Copied"
-                      variant="inline-compact"
-                      isCode={true}
-                    >
-                      {image.latest}
-                    </ClipboardCopy>
+                    <code>{image.latest}</code>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Latest digest</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <ClipboardCopy
-                      isReadOnly
-                      hoverTip="Copy"
-                      clickTip="Copied"
-                      variant="inline-compact"
-                      isCode={true}
-                    >
-                      {image.digest}
-                    </ClipboardCopy>
+                    <code>{image.digest}</code>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               </DescriptionList>
@@ -146,50 +127,26 @@ export function ImageItem({ image }: ImageItemProps) {
         isHidden={!isExpanded}
         className="image-details"
       >
-        <Content component={ContentVariants.h3}>Registry Credentials</Content>
+        {/* <Content component={ContentVariants.h3}>Registry Credentials</Content> */}
         <DescriptionList isHorizontal isCompact>
           <DescriptionListGroup>
             <DescriptionListTerm>Registry</DescriptionListTerm>
             <DescriptionListDescription>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant="inline-compact"
-                isCode
-              >
-                {image.registry}
-              </ClipboardCopy>
+              <code>{image.registry}</code>
             </DescriptionListDescription>
           </DescriptionListGroup>
 
           <DescriptionListGroup>
             <DescriptionListTerm>User</DescriptionListTerm>
             <DescriptionListDescription>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant="inline-compact"
-                isCode
-              >
-                {image.login}
-              </ClipboardCopy>
+              <code>{image.login}</code>
             </DescriptionListDescription>
           </DescriptionListGroup>
 
           <DescriptionListGroup>
             <DescriptionListTerm>Password</DescriptionListTerm>
             <DescriptionListDescription>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant="inline-compact"
-                isCode
-              >
-                {showPassword ? image.password : "••••••••••"}
-              </ClipboardCopy>
+              <code>{showPassword ? image.password : "••••••••••"}</code>
               <Button
                 variant="control"
                 onClick={() => setShowPassword(!showPassword)}
@@ -203,15 +160,9 @@ export function ImageItem({ image }: ImageItemProps) {
           <DescriptionListGroup>
             <DescriptionListTerm>Pull Token</DescriptionListTerm>
             <DescriptionListDescription>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant="inline-compact"
-                isCode
-              >
+              <code>
                 {showPullToken ? image.dockerAuthConfig : "••••••••••"}
-              </ClipboardCopy>
+              </code>
               <Button
                 variant="control"
                 onClick={() => setShowPullToken(!showPullToken)}
@@ -224,20 +175,9 @@ export function ImageItem({ image }: ImageItemProps) {
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>
-        <div className="pf-v5-u-my-md">
+        {/* <div className="pf-v5-u-my-md">
           <Divider />
-        </div>
-        {/* {image.tags.length > 10 && (
-          <Pagination
-            itemCount={image.tags.length}
-            perPage={perPage}
-            page={page}
-            onSetPage={onSetPage}
-            onPerPageSelect={onPerPageSelect}
-            variant={PaginationVariant.top}
-            isCompact
-          />
-        )} */}
+        </div> */}
         <Pagination
           itemCount={image.tags.length}
           perPage={perPage}
@@ -255,7 +195,6 @@ export function ImageItem({ image }: ImageItemProps) {
                 Architectures
               </Th>
               <Th>Digest</Th>
-              <Th style={{ textAlign: "center" }}>Pull</Th>
             </Tr>
           </Thead>
           <Tbody>
@@ -273,19 +212,6 @@ export function ImageItem({ image }: ImageItemProps) {
                 </Td>
                 <Td>
                   <code>{t.digest.substring(0, 19)}</code>
-                </Td>
-                <Td style={{ paddingTop: 0 }}>
-                  <ActionList isIconList>
-                    <ActionListItem>
-                      <Button
-                        variant="plain"
-                        id="fa-download"
-                        aria-label="download icon button"
-                        icon={<DownloadIcon />}
-                        onClick={() => handleDownloadClick(t.name, t.digest)}
-                      />
-                    </ActionListItem>
-                  </ActionList>
                 </Td>
               </Tr>
             ))}
@@ -306,50 +232,18 @@ export function ImageItem({ image }: ImageItemProps) {
             <h3 style={{ fontWeight: "bold" }}>By Tag</h3>
             <StackItem>
               {/* <Title headingLevel="h4">By Tag</Title> */}
-              <ClipboardCopy
-                isReadOnly
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant="inline-compact"
-                isCode
-              >
-                {`docker pull ${image.repository}:${selectedTag}`}
-              </ClipboardCopy>
+              <code>{`docker pull ${image.repository}:${selectedTag}`}</code>
             </StackItem>
             <StackItem>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant="inline-compact"
-                isCode
-              >
-                {`podman pull ${image.repository}:${selectedTag}`}
-              </ClipboardCopy>
+              <code>{`podman pull ${image.repository}:${selectedTag}`}</code>
             </StackItem>
 
             <h3 style={{ fontWeight: "bold" }}>By Digest</h3>
             <StackItem>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant="inline-compact"
-                isCode
-              >
-                {`docker pull ${image.repository}@${selectedDigest}`}
-              </ClipboardCopy>
+              <code>{`docker pull ${image.repository}@${selectedDigest}`}</code>
             </StackItem>
             <StackItem>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant="inline-compact"
-                isCode
-              >
-                {`podman pull ${image.repository}@${selectedDigest}`}
-              </ClipboardCopy>
+              <code>{`podman pull ${image.repository}@${selectedDigest}`}</code>
             </StackItem>
           </Stack>
         </ModalBody>
