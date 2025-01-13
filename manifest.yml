@@ -30,11 +30,7 @@ ui:
     id: 30b114025698481eb3719ca4d3cafbe9
     links:
       - path: dashboard
-        name: Dashboard
-        permissions: []
-        ref: pages.app
-      - path: support
-        name: Support
+        name: Images
         permissions: []
         ref: pages.app
 api_integrations: []

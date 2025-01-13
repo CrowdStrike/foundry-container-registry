@@ -5,7 +5,7 @@ import { ImageList } from "./ImageList";
 const Dashboard: React.FunctionComponent = () => (
   <PageSection hasBodyWrapper={false}>
     <Title headingLevel="h1" size="lg">
-      Dashboard
+      Images
     </Title>
     <ImageList />
   </PageSection>

@@ -13,7 +13,7 @@ import {
   ToolbarItem,
 } from "@patternfly/react-core";
 import * as React from "react";
-import Image from "../types/Image";
+import Image from "./types/Image";
 import { ImageItem } from "./ImageItem";
 
 const ImageList: React.FunctionComponent = () => {
