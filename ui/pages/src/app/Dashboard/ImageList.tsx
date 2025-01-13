@@ -73,7 +73,7 @@ const ImageList: React.FunctionComponent = () => {
               name: "1.22-4567.DEV.mock.us-0",
               digest:
                 "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-              arch: ["x86_64"],
+              arch: ["x86_64", "aarch64"],
             },
             {
               name: "1.23-4567.DEV.mock.us-0",
