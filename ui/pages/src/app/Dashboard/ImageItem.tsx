@@ -119,7 +119,7 @@ export function ImageItem({ image }: ImageItemProps) {
         <Table variant="compact" borders={false} className="tags-table">
           <Thead>
             <Tr>
-              <Th>Tags</Th>
+              <Th>Tag</Th>
               <Th style={{ minWidth: "fit-content", maxWidth: "100ch" }}>
                 Architectures
               </Th>
@@ -134,9 +134,11 @@ export function ImageItem({ image }: ImageItemProps) {
                 </Td>
                 <Td>
                   {t.arch.map((a) => (
-                    <Label key={`${t.name}-${a}`} isCompact>
-                      {a}
-                    </Label>
+                    <>
+                      <Label key={`${t.name}-${a}`} isCompact>
+                        {a}
+                      </Label>{" "}
+                    </>
                   ))}
                 </Td>
                 <Td>
