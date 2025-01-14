@@ -4,12 +4,12 @@ PACKAGE_NAME = foundry-container-registry-$(shell git describe --tags).tar.gz
 
 package: build
 	-mkdir out
+	# copy as-is files and directories
 	cp -r collections functions out
+	cp LICENSE manifest.yml out
+	# copy just the built pages, not their source
 	-mkdir -p out/ui/pages
 	cp -r ui/pages/dist out/ui/pages
-	cp LICENSE out
-	# grep -v 'id:' manifest.yml > out/manifest.yml
-	cp manifest.yml out
 	git describe --all > out/VERSION
 	tar -czvf $(PACKAGE_NAME) -C out .
 
