@@ -4,8 +4,13 @@ export default interface Image {
   latest: string;
   registry: string;
   repository: string;
+  digest: string;
+  login: string;
+  password: string;
+  dockerAuthConfig: string;
   tags: {
     name: string;
+    digest: string;
     arch: string[];
   }[];
 }

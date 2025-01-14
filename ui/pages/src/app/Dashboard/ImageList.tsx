@@ -15,6 +15,7 @@ import {
 import * as React from "react";
 import Image from "../types/Image";
 import { ImageItem } from "./ImageItem";
+import { MOCK_IMAGES } from "./MockData";
 
 const ImageList: React.FunctionComponent = () => {
   const [falcon, setFalcon] = React.useState<FalconApi | null>(null);
@@ -54,26 +55,7 @@ const ImageList: React.FunctionComponent = () => {
     if (window.location.hostname == "localhost") {
       // collection auth doesn't work in dev mode PLATFORMPG-792212
       setUpdated(new Date());
-      setImages([
-        {
-          name: "Mock Falcon Sensor",
-          description:
-            "The Mock Falcon Sensor is a placeholder object used to display something in the UI when running in dev mode.",
-          latest: "1.23-4567.DEV.mock.us-0",
-          registry: "registry.crowdstrike.com",
-          repository: "registry.crowdstrike.com/mock/sensor/falcon-mock",
-          tags: [
-            {
-              name: "1.22-4567.DEV.mock.us-0",
-              arch: ["x86_64"],
-            },
-            {
-              name: "1.23-4567.DEV.mock.us-0",
-              arch: ["x86_64", "aarch64"],
-            },
-          ],
-        },
-      ]);
+      setImages(MOCK_IMAGES);
       setTimeout(() => {
         // simulate collection load time so we can test the skelton
         setLoading(false);

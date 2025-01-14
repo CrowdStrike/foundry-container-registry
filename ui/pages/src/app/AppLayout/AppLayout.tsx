@@ -1,9 +1,8 @@
 import { IAppRoute, IAppRouteGroup, routes } from "@app/routes";
+import FalconApi from "@crowdstrike/foundry-js";
 import {
-  Button,
   Masthead,
   MastheadBrand,
-  MastheadContent,
   MastheadMain,
   Nav,
   NavExpandable,
@@ -14,13 +13,9 @@ import {
   PageSidebarBody,
   SkipToContent,
   Title,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
 } from "@patternfly/react-core";
 import * as React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import FalconApi from "@crowdstrike/foundry-js";
 
 interface IAppLayout {
   children: React.ReactNode;
@@ -38,21 +33,10 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const masthead = (
     <Masthead>
       <MastheadMain>
-        <MastheadBrand style={{ margin: "auto" }}>
+        <MastheadBrand>
           <Title headingLevel="h2">Container Registry</Title>
         </MastheadBrand>
       </MastheadMain>
-      <MastheadContent>
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem align={{ default: "alignEnd" }}>
-              <Button variant="secondary" isDisabled>
-                Copy login command
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-      </MastheadContent>
     </Masthead>
   );
 
@@ -119,7 +103,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     <Page
       mainContainerId={pageId}
       masthead={masthead}
-      sidebar={Sidebar}
       skipToContent={PageSkipToContent}
     >
       {children}

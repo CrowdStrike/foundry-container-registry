@@ -1,21 +1,22 @@
 import Image from "@app/types/Image";
 import {
+  DataListCell,
+  DataListContent,
   DataListItem,
+  DataListItemCells,
   DataListItemRow,
   DataListToggle,
-  DataListItemCells,
-  DataListCell,
-  Title,
   DescriptionList,
+  DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  DescriptionListDescription,
-  DataListContent,
-  ClipboardCopy,
   Label,
+  Pagination,
+  PaginationVariant,
+  Title,
 } from "@patternfly/react-core";
 import { CubeIcon } from "@patternfly/react-icons";
-import { Table, Thead, Tr, Th, Td, Tbody } from "@patternfly/react-table";
+import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import React from "react";
 
 interface ImageItemProps {
@@ -25,7 +26,40 @@ interface ImageItemProps {
 export function ImageItem({ image }: ImageItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
-  const latestImageName = `${image.repository}:${image.latest}`;
+  // Pagination state
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(10);
+
+  // Pagination handlers
+  const onSetPage = (
+    _event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
+    pageNumber: number
+  ) => {
+    setPage(pageNumber);
+  };
+
+  const onPerPageSelect = (
+    _event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
+    newPerPage: number,
+    newPage: number
+  ) => {
+    setPerPage(newPerPage);
+    setPage(newPage);
+  };
+
+  // function shortDigest(longDigest : string) {
+  //   if (longDigest.length < 19) {
+  //     return longDigest;
+  //   } else {
+  //     return shortDigest.substring(0, 19);
+  //   }
+  // }
+
+  // Calculate current page items
+  const reversedTags = [...image.tags].reverse();
+  const start = (page - 1) * perPage;
+  const end = page * perPage;
+  const currentPageTags = reversedTags.slice(start, end);
 
   return (
     <DataListItem isExpanded={isExpanded}>
@@ -43,7 +77,7 @@ export function ImageItem({ image }: ImageItemProps) {
             <DataListCell key={image.name + "-title"}>
               <Title
                 headingLevel="h3"
-                style={{ marginBottom: "var(--pf-t--global--spacer--xs)" }}
+                style={{ marginBottom: "var(--pf-global--spacer--xs)" }}
               >
                 {image.name}
               </Title>
@@ -57,6 +91,12 @@ export function ImageItem({ image }: ImageItemProps) {
                     <code>{image.latest}</code>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Image Path</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <code>{image.repository}</code>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
               </DescriptionList>
             </DataListCell>,
           ]}
@@ -67,58 +107,45 @@ export function ImageItem({ image }: ImageItemProps) {
         isHidden={!isExpanded}
         className="image-details"
       >
-        <Title headingLevel="h4">Use this image</Title>
-        <DescriptionList>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Latest image name</DescriptionListTerm>
-            <DescriptionListDescription>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant="inline-compact"
-                isCode={true}
-              >
-                {latestImageName}
-              </ClipboardCopy>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        </DescriptionList>
-        <Title headingLevel="h4">All tags</Title>
+        <Pagination
+          itemCount={image.tags.length}
+          perPage={perPage}
+          page={page}
+          onSetPage={onSetPage}
+          onPerPageSelect={onPerPageSelect}
+          variant={PaginationVariant.top}
+          isCompact
+        />
         <Table variant="compact" borders={false} className="tags-table">
           <Thead>
             <Tr>
-              <Th>Name</Th>
-              <Th>Architectures</Th>
+              <Th>Tag</Th>
+              <Th style={{ minWidth: "fit-content", maxWidth: "100ch" }}>
+                Architectures
+              </Th>
+              <Th>Digest</Th>
             </Tr>
           </Thead>
           <Tbody>
-            {image.tags.toReversed().map((t) => {
-              return (
-                <Tr>
-                  <Td>
-                    <code>{t.name}</code>
-                  </Td>
-                  <Td>
-                    {t.arch.map((a) => {
-                      return (
-                        <>
-                          {" "}
-                          <Label isCompact>{a}</Label>
-                        </>
-                      );
-                    })}
-                  </Td>
-                  {image.latest == t.name && (
-                    <Td>
-                      <Label isCompact color="blue">
-                        latest
-                      </Label>
-                    </Td>
-                  )}
-                </Tr>
-              );
-            })}
+            {currentPageTags.map((t) => (
+              <Tr key={t.name}>
+                <Td>
+                  <code>{t.name}</code>
+                </Td>
+                <Td>
+                  {t.arch.map((a) => (
+                    <>
+                      <Label key={`${t.name}-${a}`} isCompact>
+                        {a}
+                      </Label>{" "}
+                    </>
+                  ))}
+                </Td>
+                <Td>
+                  <code>{t.digest}</code>
+                </Td>
+              </Tr>
+            ))}
           </Tbody>
         </Table>
       </DataListContent>
