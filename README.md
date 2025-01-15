@@ -67,7 +67,7 @@ this feature. The release versions in this GitHub repository correspond to Found
    1. Determine the appropriate release version (major/minor/patch), keeping in mind that Foundry will generate a release version in the next step by incrementing the _previous Foundry release_ by 1 for either the major, minor, or patch part of the version
    1. Generate the changelog
 
-1. In root: `foundry apps release`
+1. `foundry apps release`
 
    1. Choose the appropriate major/minor/patch to match the versioning choice above
    1. For release notes, provide the link to the GitHub release
