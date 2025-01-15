@@ -1,6 +1,8 @@
 .PHONY: package build clean
 
-PACKAGE_NAME = foundry-container-registry-$(shell git describe --tags).tar.gz
+APP = foundry-container-registry
+VERSION = $(shell git describe --tags)
+PACKAGE_NAME = $(APP)-$(VERSION).tar.gz
 
 package: build
 	-mkdir out
@@ -19,4 +21,5 @@ ui/pages/dist:
 	cd ui/pages && npm run build
 
 clean:
-	-rm -rf ui/pages/dist out
+	-rm -rf ui/pages/dist out *.tar.gz
+	-rm $(APP)-*.tar.gz
