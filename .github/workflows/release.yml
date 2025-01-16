@@ -1,0 +1,37 @@
+name: Release Package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+env:
+  WORKDIR: "./ui/pages/"
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for git describe to work properly
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKDIR }}
+        run: npm install
+
+      - name: Create package
+        run: make package
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./*.tar.gz
+          fail_on_unmatched_files: true
