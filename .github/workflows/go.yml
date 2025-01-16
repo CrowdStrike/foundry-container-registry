@@ -1,0 +1,53 @@
+name: Golang
+
+on:
+  pull_request:
+    paths:
+      - 'functions/syncimages/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'functions/syncimages/**'
+
+permissions:
+  contents: read
+
+env:
+    WORKDIR: "./functions/syncimages/"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "${{ env.WORKDIR }}/go.mod"
+          cache: false
+
+      - name: Ensure go modules are tidy
+        run: |
+          go mod tidy
+          if [[ -n $(git status -s) ]] ; then
+            echo
+            echo -e "\e[31mRunning 'go mod tidy' changes the current setting"
+            echo -e "\e[31mEnsure to include updated go.mod and go.sum in this PR."
+            echo -e "\e[31mThis is usually done by running 'go mod tidy'\e[0m"
+            git status -s
+            git diff --color
+            exit 1
+          fi
+        working-directory: ${{ env.WORKDIR }}
+
+      - name: Run linters
+        uses: golangci/golangci-lint-action@v6.1.1
+        with:
+          args: --out-format=colored-line-number
+          version: latest
+          working-directory: ${{ env.WORKDIR }}
+
+      - name: Build
+        run: go build -o syncimages main.go
+        working-directory: ${{ env.WORKDIR }}
