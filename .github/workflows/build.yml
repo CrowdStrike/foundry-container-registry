@@ -1,0 +1,38 @@
+name: npm
+
+on:
+  pull_request:
+    paths:
+      - 'ui/pages/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'ui/pages/**'
+
+permissions:
+  contents: read
+
+env:
+    WORKDIR: "./ui/pages/"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          working-directory: ${{ env.WORKDIR }}
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ${{ env.WORKDIR }}
+
+      - name: Run make build
+        run: |
+          make build
