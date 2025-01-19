@@ -285,7 +285,7 @@ func semverSort(tags []string) ([]string, error) {
 	for i, r := range tags {
 		v, err := semver.NewVersion(r)
 		if err != nil {
-			return []string{}, fmt.Errorf("error parsing version: %s", err)
+			return []string{}, fmt.Errorf("error parsing version %s: %s", v, err)
 		}
 		sv[i] = v
 	}
