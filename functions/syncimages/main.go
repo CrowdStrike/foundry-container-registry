@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -48,45 +47,7 @@ type Tag struct {
 }
 
 func main() {
-	// fdk.Run(context.Background(), newHandler)
-	debugMode()
-}
-
-func debugMode() {
-	debug := false
-	var err error
-	envDebug := os.Getenv("DEBUG")
-	if envDebug != "" {
-		debug, err = strconv.ParseBool(envDebug)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if debug {
-		slog.SetLogLoggerLevel(slog.LevelDebug)
-		slog.Debug("DEBUG mode is enabled. DO NOT USE IN PRODUCTION.")
-	}
-
-	client, cloud, err := newFalconClient("")
-	if err != nil {
-		slog.Error("Failed to create Falcon client", "error", err)
-		log.Fatal(err)
-	}
-
-	imageData, err := getImages(client, cloud)
-	if err != nil {
-		slog.Error("failed to get images", "error", err)
-		log.Fatal(err)
-	}
-
-	jsonData, err := json.MarshalIndent(imageData, "", "  ")
-	if err != nil {
-		slog.Error("failed to marshal json", "error", err)
-		log.Fatal(err)
-	}
-	fmt.Println(string(jsonData))
-	os.Exit(0)
+	fdk.Run(context.Background(), newHandler)
 }
 
 func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handler {
@@ -266,7 +227,10 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 				return ImageList{}, fmt.Errorf("error sorting tags: %v", err)
 			}
 
-			for _, tag := range imageTags {
+			// set tags == imageTags
+			tags = imageTags
+
+			for _, tag := range tags {
 				slog.Debug("processing tag",
 					"repository", imageInfo.Repository,
 					"tag", tag)
