@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	falconapi "syncimages/falcon"
@@ -219,7 +220,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		switch sensorType {
 		case falcon.ImageSensor, falcon.FCSCli, falcon.Snapshot, falcon.SHRAController, falcon.SHRAExecutor:
 			slog.Debug("sorting semver tags", "sensor_type", sensorType)
-			imageTags, err := semverSort(tags)
+			tags, err = semverSort(tags)
 			if err != nil {
 				slog.Error("failed to sort tags",
 					"sensor_type", sensorType,
@@ -227,61 +228,14 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 				return ImageList{}, fmt.Errorf("error sorting tags: %v", err)
 			}
 
-			// set tags == imageTags
-			tags = imageTags
-
-			for _, tag := range tags {
-				slog.Debug("processing tag",
-					"repository", imageInfo.Repository,
-					"tag", tag)
-
-				digest, err := rc.GetImageDigest(imageInfo.Repository, tag)
-				if err != nil {
-					slog.Error("failed to get digest",
-						"repository", imageInfo.Repository,
-						"tag", tag,
-						"error", err)
-					return ImageList{}, fmt.Errorf("error getting digest: %w", err)
-				}
-
-				archs := archInTag(tag, imageInfo, rc)
-				slog.Debug("tag details",
-					"tag", tag,
-					"digest", digest,
-					"architectures", archs)
-
-				imageInfo.Tags = append(imageInfo.Tags, Tag{
-					Name:   tag,
-					Digest: digest,
-					Arch:   archs,
-				})
+			err := processTagsConcurrently(tags, &imageInfo, rc)
+			if err != nil {
+				return ImageList{}, err
 			}
 		default:
-			for _, tag := range tags {
-				slog.Debug("processing non-semver tag",
-					"repository", imageInfo.Repository,
-					"tag", tag)
-
-				digest, err := rc.GetImageDigest(imageInfo.Repository, tag)
-				if err != nil {
-					slog.Error("failed to get digest",
-						"repository", imageInfo.Repository,
-						"tag", tag,
-						"error", err)
-					return ImageList{}, fmt.Errorf("error getting digest: %w", err)
-				}
-
-				archs := archInTag(tag, imageInfo, rc)
-				slog.Debug("tag details",
-					"tag", tag,
-					"digest", digest,
-					"architectures", archs)
-
-				imageInfo.Tags = append(imageInfo.Tags, Tag{
-					Name:   tag,
-					Digest: digest,
-					Arch:   archs,
-				})
+			err := processTagsConcurrently(tags, &imageInfo, rc)
+			if err != nil {
+				return ImageList{}, err
 			}
 		}
 
@@ -316,6 +270,95 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		"image_count", len(regInfo.Images))
 
 	return regInfo, nil
+}
+
+func processTagsConcurrently(tags []string, imageInfo *Image, rc registry.Config) error {
+	type result struct {
+		tag    string
+		digest string
+		archs  []string
+		err    error
+		index  int
+	}
+
+	resultChan := make(chan result, len(tags))
+	var wg sync.WaitGroup
+
+	// Create a semaphore to limit concurrent operations
+	maxConcurrent := 10
+	semaphore := make(chan struct{}, maxConcurrent)
+
+	// Launch goroutines for each tag
+	for i, tag := range tags {
+		wg.Add(1)
+		go func(tag string, index int) {
+			// Acquire semaphore
+			semaphore <- struct{}{}
+			defer func() {
+				// Release semaphore
+				<-semaphore
+				wg.Done()
+			}()
+
+			slog.Debug("processing tag",
+				"repository", imageInfo.Repository,
+				"tag", tag)
+
+			digest, err := rc.GetImageDigest(imageInfo.Repository, tag)
+			if err != nil {
+				slog.Error("failed to get digest",
+					"repository", imageInfo.Repository,
+					"tag", tag,
+					"error", err)
+				resultChan <- result{tag: tag, err: err, index: index}
+				return
+			}
+
+			archs := archInTag(tag, *imageInfo, rc)
+			slog.Debug("tag details",
+				"tag", tag,
+				"digest", digest,
+				"architectures", archs)
+
+			resultChan <- result{
+				tag:    tag,
+				digest: digest,
+				archs:  archs,
+				index:  index,
+			}
+		}(tag, i)
+	}
+
+	// Close result channel once all goroutines complete
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results
+	results := make([]result, 0, len(tags))
+	for r := range resultChan {
+		if r.err != nil {
+			return fmt.Errorf("error getting digest: %w", r.err)
+		}
+		results = append(results, r)
+	}
+
+	// Sort results based on original index
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].index < results[j].index
+	})
+
+	// Append sorted results to imageInfo.Tags
+	for _, r := range results {
+		imageInfo.Tags = append(imageInfo.Tags, Tag{
+			Name:   r.tag,
+			Digest: r.digest,
+			Arch:   r.archs,
+		})
+	}
+
+	return nil
 }
 
 // sensorImageInfo returns the name and description for the specified sensor type.
@@ -431,14 +474,14 @@ func semverSort(tags []string) ([]string, error) {
 // allSensorTypes returns all sensor types.
 func allSensorTypes() []falcon.SensorType {
 	return []falcon.SensorType{
-		// falcon.NodeSensor,
-		// falcon.SidecarSensor,
+		falcon.NodeSensor,
+		falcon.SidecarSensor,
 		falcon.ImageSensor,
-		// falcon.KacSensor,
-		// falcon.Snapshot,
-		// falcon.FCSCli,
-		// falcon.SHRAController,
-		// falcon.SHRAExecutor,
+		falcon.KacSensor,
+		falcon.Snapshot,
+		falcon.FCSCli,
+		falcon.SHRAController,
+		falcon.SHRAExecutor,
 	}
 }
 
