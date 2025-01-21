@@ -13,6 +13,7 @@ import (
 
 	falconapi "syncimages/falcon"
 	"syncimages/registry"
+	"syncimages/version"
 
 	fdk "github.com/CrowdStrike/foundry-fn-go"
 	"github.com/Masterminds/semver"
@@ -118,6 +119,7 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 	ctx := context.Background()
 	opts := fdk.FalconClientOpts()
 	cloud := opts.Cloud
+	userAgent := fmt.Sprintf("%s foundry-container-registry/%s", opts.UserAgent, version.Version)
 
 	if os.Getenv("FALCON_CLOUD") != "" {
 		cloud = os.Getenv("FALCON_CLOUD")
@@ -127,7 +129,7 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 		AccessToken:       token,
 		Cloud:             falcon.Cloud(cloud),
 		Context:           ctx,
-		UserAgentOverride: opts.UserAgent,
+		UserAgentOverride: userAgent,
 	}
 
 	if apiConfig.AccessToken == "" {
@@ -135,7 +137,7 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 		apiConfig.ClientSecret = os.Getenv("FALCON_CLIENT_SECRET")
 	}
 
-	slog.Debug("Creating Falcon client", "client_id", apiConfig.ClientId, "client_secret", apiConfig.ClientSecret, "cloud", cloud, "access_token", apiConfig.AccessToken)
+	slog.Debug("Creating Falcon client", "client_id", apiConfig.ClientId, "client_secret", apiConfig.ClientSecret, "cloud", cloud, "access_token", apiConfig.AccessToken, "user_agent", userAgent)
 
 	client, err := falcon.NewClient(apiConfig)
 	return client, cloud, err

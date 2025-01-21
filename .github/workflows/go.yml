@@ -44,7 +44,7 @@ jobs:
       - name: Run linters
         uses: golangci/golangci-lint-action@v6.1.1
         with:
-          args: --out-format=colored-line-number
+          args: --out-format=colored-line-number --timeout=5m12s
           version: latest
           working-directory: ${{ env.WORKDIR }}
 
