@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'ui/pages/**'
+      - '.github/workflows/build.yml'
 
 permissions:
   contents: read
