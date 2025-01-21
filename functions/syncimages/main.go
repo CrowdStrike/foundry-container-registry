@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -47,7 +48,45 @@ type Tag struct {
 }
 
 func main() {
-	fdk.Run(context.Background(), newHandler)
+	// fdk.Run(context.Background(), newHandler)
+	debugMode()
+}
+
+func debugMode() {
+	debug := false
+	var err error
+	envDebug := os.Getenv("DEBUG")
+	if envDebug != "" {
+		debug, err = strconv.ParseBool(envDebug)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if debug {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+		slog.Debug("DEBUG mode is enabled. DO NOT USE IN PRODUCTION.")
+	}
+
+	client, cloud, err := newFalconClient("")
+	if err != nil {
+		slog.Error("Failed to create Falcon client", "error", err)
+		log.Fatal(err)
+	}
+
+	imageData, err := getImages(client, cloud)
+	if err != nil {
+		slog.Error("failed to get images", "error", err)
+		log.Fatal(err)
+	}
+
+	jsonData, err := json.MarshalIndent(imageData, "", "  ")
+	if err != nil {
+		slog.Error("failed to marshal json", "error", err)
+		log.Fatal(err)
+	}
+	fmt.Println(string(jsonData))
+	os.Exit(0)
 }
 
 func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handler {
@@ -145,90 +184,172 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 
 // getImages returns a list of images and tags from the CrowdStrike API.
 func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageList, error) {
+	slog.Info("starting image retrieval process", "cloud", cloud)
 	regInfo := ImageList{}
 	startTime := time.Now()
 	ctx := context.Background()
-	// get CID here once
+
 	cid, err := falconapi.GetCID(ctx, client)
 	if err != nil {
+		slog.Error("failed to get Falcon CID", "error", err)
 		return ImageList{}, fmt.Errorf("error getting Falcon CID: %v", err)
 	}
-	// iterate through each sensor type to get registry tokens and image info
+	slog.Info("retrieved CID successfully", "cid", cid)
+
+	slog.Debug("processing sensor types", "types", allSensorTypes())
 	for _, sensorType := range allSensorTypes() {
+		slog.Info("processing sensor type",
+			"type", sensorType,
+		)
+
 		imageInfo := Image{}
 		prefix := loginPrefix(sensorType)
 		user := falconapi.RegistryLogin(prefix, cid)
 
-		slog.Debug("Sensor type", "sensor", sensorType)
+		slog.Debug("getting registry token",
+			"sensor_type", sensorType,
+			"login_prefix", prefix,
+			"user", user)
+
 		pass, err := falconapi.RegistryToken(ctx, client, sensorType)
 		if err != nil {
+			slog.Error("failed to get registry token",
+				"sensor_type", sensorType,
+				"error", err)
 			return ImageList{}, fmt.Errorf("error getting registry token: %v", err)
 		}
 
-		slog.Debug("Registry access", "user", user, "pass", pass)
 		rc := registry.Config{User: user, Pass: pass}
 		imageInfo.Login = user
 		imageInfo.Password = pass
 
 		sensor := falcon.FalconContainerSensorImageURI(falcon.Cloud(cloud), sensorType)
-		slog.Debug("Sensor URI returned from API", "sensor", sensor)
+		slog.Debug("constructed sensor URI",
+			"sensor_type", sensorType,
+			"uri", sensor)
 
 		imageInfo.Registry = strings.Split(sensor, "/")[0]
 		imageInfo.Repository = sensor
 
 		dockerConfigJson := rc.DockerConfigJson(imageInfo.Registry)
-		slog.Debug("Get DockerConfigJson", "rc.DockerConfigJson", dockerConfigJson)
+		slog.Debug("generated docker config",
+			"registry", imageInfo.Registry,
+			"config_length", len(dockerConfigJson))
 		imageInfo.DockerJson = dockerConfigJson
 
 		name, description := sensorImageInfo(sensorType)
 		imageInfo.Name = name
 		imageInfo.Description = description
 
+		slog.Debug("getting repository tags",
+			"repository", sensor)
 		tags, err := rc.GetRepositoryTags(sensor)
 		if err != nil {
+			slog.Error("failed to list repository tags",
+				"repository", sensor,
+				"error", err)
 			return ImageList{}, fmt.Errorf("error listing repository tags for %v: %v", sensor, err)
 		}
+		slog.Debug("retrieved tags",
+			"repository", sensor,
+			"tag_count", len(tags),
+			"tags", tags)
 
 		switch sensorType {
 		case falcon.ImageSensor, falcon.FCSCli, falcon.Snapshot, falcon.SHRAController, falcon.SHRAExecutor:
+			slog.Debug("sorting semver tags", "sensor_type", sensorType)
 			imageTags, err := semverSort(tags)
 			if err != nil {
+				slog.Error("failed to sort tags",
+					"sensor_type", sensorType,
+					"error", err)
 				return ImageList{}, fmt.Errorf("error sorting tags: %v", err)
 			}
 
 			for _, tag := range imageTags {
+				slog.Debug("processing tag",
+					"repository", imageInfo.Repository,
+					"tag", tag)
+
 				digest, err := rc.GetImageDigest(imageInfo.Repository, tag)
 				if err != nil {
+					slog.Error("failed to get digest",
+						"repository", imageInfo.Repository,
+						"tag", tag,
+						"error", err)
 					return ImageList{}, fmt.Errorf("error getting digest: %w", err)
 				}
 
-				imageInfo.Tags = append(imageInfo.Tags, Tag{Name: tag, Digest: digest, Arch: archInTag(tag)})
+				archs := archInTag(tag, imageInfo, rc)
+				slog.Debug("tag details",
+					"tag", tag,
+					"digest", digest,
+					"architectures", archs)
+
+				imageInfo.Tags = append(imageInfo.Tags, Tag{
+					Name:   tag,
+					Digest: digest,
+					Arch:   archs,
+				})
 			}
 		default:
 			for _, tag := range tags {
+				slog.Debug("processing non-semver tag",
+					"repository", imageInfo.Repository,
+					"tag", tag)
+
 				digest, err := rc.GetImageDigest(imageInfo.Repository, tag)
 				if err != nil {
+					slog.Error("failed to get digest",
+						"repository", imageInfo.Repository,
+						"tag", tag,
+						"error", err)
 					return ImageList{}, fmt.Errorf("error getting digest: %w", err)
 				}
 
-				imageInfo.Tags = append(imageInfo.Tags, Tag{Name: tag, Digest: digest, Arch: archInTag(tag)})
+				archs := archInTag(tag, imageInfo, rc)
+				slog.Debug("tag details",
+					"tag", tag,
+					"digest", digest,
+					"architectures", archs)
+
+				imageInfo.Tags = append(imageInfo.Tags, Tag{
+					Name:   tag,
+					Digest: digest,
+					Arch:   archs,
+				})
 			}
 		}
 
-		imageInfo.LatestTag = tags[len(tags)-1]
-		digest, err := rc.GetImageDigest(imageInfo.Repository, imageInfo.LatestTag)
-		if err != nil {
-			return ImageList{}, fmt.Errorf("error getting digest: %w", err)
+		if len(tags) > 0 {
+			imageInfo.LatestTag = tags[len(tags)-1]
+			slog.Debug("getting latest tag digest",
+				"repository", imageInfo.Repository,
+				"tag", imageInfo.LatestTag)
+
+			digest, err := rc.GetImageDigest(imageInfo.Repository, imageInfo.LatestTag)
+			if err != nil {
+				slog.Error("failed to get latest tag digest",
+					"repository", imageInfo.Repository,
+					"tag", imageInfo.LatestTag,
+					"error", err)
+				return ImageList{}, fmt.Errorf("error getting digest: %w", err)
+			}
+			imageInfo.LatestDigest = digest
 		}
 
-		imageInfo.LatestDigest = digest
 		regInfo.Images = append(regInfo.Images, imageInfo)
-		slog.Debug("Image info", "name", imageInfo.Name, "description", imageInfo.Description, "registry", imageInfo.Registry, "repository", imageInfo.Repository, "latest_tag", imageInfo.LatestTag, "latest_digest", imageInfo.LatestDigest)
-		slog.Debug("Tags", "tags", imageInfo.Tags)
+		slog.Info("completed processing sensor type",
+			"type", sensorType,
+			"tag_count", len(imageInfo.Tags))
 	}
 
 	regInfo.Updated = time.Now()
 	regInfo.DurationMs = time.Since(startTime).Milliseconds()
+
+	slog.Info("completed image retrieval",
+		"duration_ms", regInfo.DurationMs,
+		"image_count", len(regInfo.Images))
 
 	return regInfo, nil
 }
@@ -268,49 +389,92 @@ func sensorImageInfo(sensorType falcon.SensorType) (string, string) {
 }
 
 // archInTag returns the architecture from the tag.
-func archInTag(tag string) []string {
-	arch := []string{}
-	switch {
-	case strings.Contains(tag, "x86_64"):
-		arch = append(arch, "x86_64")
-	case strings.Contains(tag, "aarch64"):
-		arch = append(arch, "aarch64")
-	default:
-		arch = append(arch, "x86_64", "aarch64")
+func archInTag(tag string, imageInfo Image, rc registry.Config) []string {
+	slog.Debug("determining architecture for tag",
+		"repository", imageInfo.Repository,
+		"tag", tag)
+
+	// First try to determine from the tag name
+	if strings.Contains(tag, "x86_64") {
+		slog.Debug("found architecture in tag name",
+			"tag", tag,
+			"arch", "x86_64")
+		return []string{"x86_64"}
 	}
-	return arch
+	if strings.Contains(tag, "aarch64") {
+		slog.Debug("found architecture in tag name",
+			"tag", tag,
+			"arch", "aarch64")
+		return []string{"aarch64"}
+	}
+
+	// If not in tag name, try to get from manifest
+	slog.Debug("attempting to get architectures from manifest",
+		"repository", imageInfo.Repository,
+		"tag", tag)
+
+	archs, err := rc.GetImageArchitecture(imageInfo.Repository, tag)
+	if err != nil {
+		slog.Warn("failed to get architectures from manifest",
+			"repository", imageInfo.Repository,
+			"tag", tag,
+			"error", err,
+			"falling_back_to", []string{"x86_64", "aarch64"})
+		return []string{"x86_64", "aarch64"}
+	}
+
+	slog.Debug("got architectures from manifest",
+		"repository", imageInfo.Repository,
+		"tag", tag,
+		"architectures", archs)
+	return archs
 }
 
 // semverSort sorts the tags in semver order.
 func semverSort(tags []string) ([]string, error) {
-	sv := make([]*semver.Version, len(tags))
-	for i, r := range tags {
+	var validTags []string
+	sv := make([]*semver.Version, 0, len(tags))
+
+	for _, r := range tags {
 		v, err := semver.NewVersion(r)
 		if err != nil {
-			return []string{}, fmt.Errorf("error parsing version %s: %s", v, err)
+			// Don't fail on invalid semver tags, just log and continue
+			slog.Warn("Skipping invalid semver tag", "tag", r, "error", err)
+			continue
 		}
-		sv[i] = v
+		sv = append(sv, v)
+		validTags = append(validTags, r)
+	}
+
+	if len(validTags) == 0 {
+		slog.Warn("No valid semver tags found", "tags", tags)
+		return tags, nil
 	}
 
 	sort.Sort(semver.Collection(sv))
+
+	// Rebuild the sorted tag list
+	result := make([]string, len(sv))
 	for i, v := range sv {
-		tags[i] = v.Original()
+		result[i] = v.Original()
 	}
 
-	return tags, nil
+	slog.Debug("semver results", "tags", result)
+
+	return result, nil
 }
 
 // allSensorTypes returns all sensor types.
 func allSensorTypes() []falcon.SensorType {
 	return []falcon.SensorType{
-		falcon.NodeSensor,
-		falcon.SidecarSensor,
+		// falcon.NodeSensor,
+		// falcon.SidecarSensor,
 		falcon.ImageSensor,
-		falcon.KacSensor,
-		falcon.Snapshot,
-		falcon.FCSCli,
-		falcon.SHRAController,
-		falcon.SHRAExecutor,
+		// falcon.KacSensor,
+		// falcon.Snapshot,
+		// falcon.FCSCli,
+		// falcon.SHRAController,
+		// falcon.SHRAExecutor,
 	}
 }
 
