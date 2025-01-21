@@ -4,6 +4,7 @@ GO_VERSION = $(shell echo "$(VERSION)" | sed "s/v//g" | cut -d "-" -f1)
 PACKAGE_NAME = $(APP)-$(VERSION).tar.gz
 
 PLATFORM = $(shell uname)
+UI_DIR = ui/pages
 
 ifeq ($(PLATFORM),Darwin)
 	# macOS
@@ -25,9 +26,13 @@ package: build
 	$(shell echo "$(VERSION)" > out/VERSION)
 	tar -czvf $(PACKAGE_NAME) -C out .
 
+.PHONY: install
+install:
+	npm install --prefix $(UI_DIR)
+
 .PHONY: build
-build:
-	cd ui/pages && npm run build
+build: install
+	npm run build --prefix $(UI_DIR)
 
 .PHONY: clean
 clean:
