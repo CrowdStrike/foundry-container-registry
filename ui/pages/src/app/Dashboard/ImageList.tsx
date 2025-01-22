@@ -5,7 +5,9 @@ import {
   Button,
   DataList,
   EmptyState,
+  EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   Grid,
   GridItem,
   Skeleton,
@@ -137,42 +139,49 @@ const ImageList: React.FunctionComponent = () => {
           >
             <EmptyStateBody>
               Images haven't been synced from the CrowdStrike registry yet.
-              Click the button below to force a sync now.
             </EmptyStateBody>
+            <EmptyStateFooter>
+              <EmptyStateActions>
+                <Button variant="primary" onClick={syncImages}>
+                  Sync images now
+                </Button>
+              </EmptyStateActions>
+            </EmptyStateFooter>
           </EmptyState>
         )) || (
-          <DataList aria-label="Mixed expandable data list example">
-            {images.map((i) => {
-              return <ImageItem image={i} key={i.name} />;
-            })}
-          </DataList>
+          <>
+            <DataList aria-label="Mixed expandable data list example">
+              {images.map((i) => {
+                return <ImageItem image={i} key={i.name} />;
+              })}
+            </DataList>
+            <Toolbar>
+              <ToolbarContent>
+                <ToolbarItem alignSelf="center">
+                  <p>
+                    This app periodically syncs image data with the CrowdStrike
+                    registry. Last sync was{" "}
+                    <Timestamp
+                      date={updated}
+                      style={{ fontSize: "var(--pf-v6-c-toolbar--FontSize)" }}
+                    />
+                    .
+                  </p>
+                </ToolbarItem>
+                <ToolbarItem>
+                  <Button variant="link" onClick={syncImages}>
+                    Sync images now
+                  </Button>
+                </ToolbarItem>
+                <ToolbarItem hidden={true}>
+                  <Button variant="link" onClick={deleteImages}>
+                    Delete synced images
+                  </Button>
+                </ToolbarItem>
+              </ToolbarContent>
+            </Toolbar>
+          </>
         )}
-
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem alignSelf="center">
-              <p>
-                This app periodically syncs image data with the CrowdStrike
-                registry. Last sync was{" "}
-                <Timestamp
-                  date={updated}
-                  style={{ fontSize: "var(--pf-v6-c-toolbar--FontSize)" }}
-                />
-                .
-              </p>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button variant="link" onClick={syncImages}>
-                Sync images now
-              </Button>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button variant="link" onClick={deleteImages}>
-                Delete synced images
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
       </>
     );
   }
