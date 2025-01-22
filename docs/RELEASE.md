@@ -18,18 +18,24 @@ Deploy builds from either `main` or feature branches:
    make build
    ```
 
-2. Deploy to Foundry:
+1. Deploy to Foundry:
 
    ```bash
    foundry apps deploy
    ```
 
-3. During deployment:
+1. During deployment:
    - Select "Patch" version (by convention)
    - Add a changelog or note "preparing for vX.Y.Z"
    - Preview and test the application
      - In the Falcon console, make sure you enable **Preview mode** under developer tools:
          ![preview-mode](../assets/preview-mode.png)
+     - Navigate to ***Foundry*** -> ***Foundry*** -> ***App manager*** to view the deployment status
+     - Once the status is **Deployed** (1), refresh the page and select the correct preview version (2) to test the application:
+        ![preview2](../assets/preview2.png)
+
+     - Navigate to **Custom apps** and select **Images** to open the app
+         <img src="../assets/open-app.png" alt="open-app" width="500">
 
 ## Release Process
 

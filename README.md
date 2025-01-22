@@ -74,6 +74,11 @@ Once the app has been installed, you can now access it via the **Custom apps** m
 1. Navigate to **Custom apps** and select **Images** to open the app
 <img src="./assets/open-app.png" alt="open-app" width="500">
 
+> [!NOTE]
+> The first time you launch the app, you will need to click on the **Sync images now** button to fetch the latest data from the container registry and populate the app with data.
+
+![app-image](./assets/app-image.png)
+
 ## Documentation
 
 - [Developer Guide](docs/DEVELOPER.md)

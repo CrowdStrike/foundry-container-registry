@@ -18,7 +18,7 @@
 1. In the Falcon console, make sure you enable **Development mode** under developer tools:
     ![preview-mode](../assets/dev-mode.png)
 
-2. Set up the UI development environment:
+1. Set up the UI development environment:
 
     ```bash
     cd ui/pages
@@ -26,13 +26,14 @@
     npm run watch    # Live rebuild on change
     ```
 
-3. In the root directory (in a separate terminal), run:
+1. In the root directory (in a separate terminal), run:
 
     ```bash
     foundry apps run
     ```
 
-The pages will now be available in the Falcon console (after refresh) under the **Custom apps** menu.
+1. Navigate to **Custom apps** and select **Images** to open the app
+<img src="../assets/open-app.png" alt="open-app" width="500">
 
 ### Testing functions locally
 
@@ -68,7 +69,7 @@ Foundry functions don't have a "dev mode" so we test locally and then deploy.
         }'
     ```
 
-### Previewing the app
+## Previewing the app
 
 To preview the Foundry app after making development changes, please refer to the [Release and Deployment Guide](./RELEASE.md#development-deployments).
 
