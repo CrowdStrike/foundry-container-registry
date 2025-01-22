@@ -184,7 +184,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 				}
 			}
 
-			rc := registry.Config{User: user, Pass: pass}
+			rc := registry.NewRegistryConfig(user, pass)
 			imageInfo.Login = user
 			imageInfo.Password = pass
 

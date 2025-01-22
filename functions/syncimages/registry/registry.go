@@ -12,11 +12,31 @@ import (
 	"github.com/containers/image/v5/types"
 )
 
-// Config contains the user, password, and token for the registry.
+// Config holds the configuration for the registry.
 type Config struct {
-	User  string
-	Pass  string
-	Token string
+	User string
+	Pass string
+
+	ctx    context.Context
+	sysCtx *types.SystemContext
+}
+
+// NewRegistryConfig returns a new registry configuration.
+func NewRegistryConfig(user string, pass string) Config {
+	ctx := context.Background()
+	sysCtx := &types.SystemContext{
+		DockerAuthConfig: &types.DockerAuthConfig{
+			Username: user,
+			Password: pass,
+		},
+	}
+
+	return Config{
+		User:   user,
+		Pass:   pass,
+		ctx:    ctx,
+		sysCtx: sysCtx,
+	}
 }
 
 // getImageRef returns a reference to the specified image.
@@ -33,29 +53,14 @@ func getImageRef(sensor string) (types.ImageReference, error) {
 	return docker.NewReference(reference.TagNameOnly(ref))
 }
 
-// dockerConfig returns the context and system context for the Docker client.
-func (rc Config) dockerConfig() (context.Context, *types.SystemContext) {
-	ctx := context.Background()
-	sysCtx := &types.SystemContext{
-		DockerAuthConfig: &types.DockerAuthConfig{
-			Username: rc.User,
-			Password: rc.Pass,
-		},
-	}
-
-	return ctx, sysCtx
-}
-
 // GetRepositoryTags returns a list of tags for the specified image.
 func (rc Config) GetRepositoryTags(image string) ([]string, error) {
-	ctx, sysCtx := rc.dockerConfig()
-
 	imgRef, err := getImageRef(image)
 	if err != nil {
 		return nil, fmt.Errorf("error creating image reference: %v", err)
 	}
 
-	tags, err := docker.GetRepositoryTags(ctx, sysCtx, imgRef)
+	tags, err := docker.GetRepositoryTags(rc.ctx, rc.sysCtx, imgRef)
 	if err != nil {
 		return nil, fmt.Errorf("error listing repository tags: %v", err)
 	}
@@ -65,15 +70,13 @@ func (rc Config) GetRepositoryTags(image string) ([]string, error) {
 
 // GetImageDigest returns the digest for the specified image and tag.
 func (rc Config) GetImageDigest(image string, tag string) (string, error) {
-	ctx, sysCtx := rc.dockerConfig()
-
 	image = fmt.Sprintf("//%s:%s", image, tag)
 	imgRef, err := docker.ParseReference(image)
 	if err != nil {
 		return "", fmt.Errorf("error parsing reference: %v", err)
 	}
 
-	digest, err := docker.GetDigest(ctx, sysCtx, imgRef)
+	digest, err := docker.GetDigest(rc.ctx, rc.sysCtx, imgRef)
 	if err != nil {
 		return "", fmt.Errorf("error getting digest: %v", err)
 	}
@@ -83,21 +86,19 @@ func (rc Config) GetImageDigest(image string, tag string) (string, error) {
 
 // GetImageArchitecture returns the architecture for the specified image and tag.
 func (rc Config) GetImageArchitecture(image string, tag string) ([]string, error) {
-	ctx, sysCtx := rc.dockerConfig()
-
 	image = fmt.Sprintf("//%s:%s", image, tag)
 	imgRef, err := docker.ParseReference(image)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing reference: %w", err)
 	}
 
-	src, err := imgRef.NewImageSource(ctx, sysCtx)
+	src, err := imgRef.NewImageSource(rc.ctx, rc.sysCtx)
 	if err != nil {
 		return nil, fmt.Errorf("error creating image source: %w", err)
 	}
 	defer src.Close()
 
-	manifestBytes, manifestType, err := src.GetManifest(ctx, nil)
+	manifestBytes, manifestType, err := src.GetManifest(rc.ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting manifest: %w", err)
 	}
@@ -106,7 +107,7 @@ func (rc Config) GetImageArchitecture(image string, tag string) ([]string, error
 	case "application/vnd.docker.distribution.manifest.list.v2+json":
 		return getMultiImageArch(manifestBytes)
 	case "application/vnd.docker.distribution.manifest.v2+json":
-		return rc.getSingleImageArche(imgRef, ctx, sysCtx)
+		return rc.getSingleImageArche(imgRef)
 	default:
 		return nil, fmt.Errorf("unsupported manifest type: %s", manifestType)
 	}
@@ -149,14 +150,14 @@ func translateArch(arch string) string {
 }
 
 // getSingleImageArche returns the architecture for a single image.
-func (rc Config) getSingleImageArche(imgRef types.ImageReference, ctx context.Context, sysCtx *types.SystemContext) ([]string, error) {
-	img, err := imgRef.NewImage(ctx, sysCtx)
+func (rc Config) getSingleImageArche(imgRef types.ImageReference) ([]string, error) {
+	img, err := imgRef.NewImage(rc.ctx, rc.sysCtx)
 	if err != nil {
 		return nil, fmt.Errorf("error creating image instance: %w", err)
 	}
 	defer img.Close()
 
-	imgInspect, err := img.Inspect(ctx)
+	imgInspect, err := img.Inspect(rc.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error inspecting image: %w", err)
 	}
