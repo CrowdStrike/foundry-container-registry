@@ -7,7 +7,7 @@ toolchain go1.23.4
 require (
 	github.com/CrowdStrike/foundry-fn-go v0.23.2
 	github.com/Masterminds/semver v1.5.0
-	github.com/containers/image/v5 v5.33.0
+	github.com/containers/image/v5 v5.33.1
 	github.com/crowdstrike/gofalcon v0.10.0
 )
 
@@ -17,7 +17,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.2.0 // indirect
-	github.com/containers/storage v1.56.0 // indirect
+	github.com/containers/storage v1.56.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v27.4.1+incompatible // indirect

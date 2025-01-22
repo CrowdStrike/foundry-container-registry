@@ -4,6 +4,10 @@ import {
   Alert,
   Button,
   DataList,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
+  EmptyStateFooter,
   Grid,
   GridItem,
   Skeleton,
@@ -12,6 +16,7 @@ import {
   ToolbarContent,
   ToolbarItem,
 } from "@patternfly/react-core";
+import { CubesIcon } from "@patternfly/react-icons";
 import * as React from "react";
 import Image from "../types/Image";
 import { ImageItem } from "./ImageItem";
@@ -70,13 +75,26 @@ const ImageList: React.FunctionComponent = () => {
       })
       .then((resp) => {
         const imageResp = resp as ImageCollectionResponse;
-        setUpdated(imageResp.updated);
-        setImages(imageResp.images);
+        // if (imageResp.errors && imageResp.errors.length > 0) {
+        //   if (imageResp.errors[0].code == 404) {
+        //     // collection hasn't been synced yet, do that now
+        //     syncImages();
+        //   } else {
+        //     setErrorSafe(imageResp.errors[0].message);
+        //   }
+        //   return;
+        // }
+        imageResp.updated && setUpdated(imageResp.updated);
+        imageResp.images && setImages(imageResp.images);
       })
       .catch(setErrorSafe)
       .finally(() => {
         setLoading(false);
       });
+  }
+
+  function deleteImages() {
+    falcon!.collection({ collection: "images" }).delete("all");
   }
 
   React.useEffect(() => {
@@ -113,31 +131,57 @@ const ImageList: React.FunctionComponent = () => {
             <p>{error.message}</p>
           </Alert>
         )}
-        <DataList aria-label="Mixed expandable data list example">
-          {images.map((i) => {
-            return <ImageItem image={i} key={i.name} />;
-          })}
-        </DataList>
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem alignSelf="center">
-              <p>
-                This app periodically syncs image data with the CrowdStrike
-                registry. Last sync was{" "}
-                <Timestamp
-                  date={updated}
-                  style={{ fontSize: "var(--pf-v6-c-toolbar--FontSize)" }}
-                />
-                .
-              </p>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button variant="link" onClick={syncImages}>
-                Sync images now
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+        {(images.length == 0 && (
+          <EmptyState
+            titleText="No images synced"
+            headingLevel="h4"
+            icon={CubesIcon}
+          >
+            <EmptyStateBody>
+              Images haven't been synced from the CrowdStrike registry yet.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+              <EmptyStateActions>
+                <Button variant="primary" onClick={syncImages}>
+                  Sync images now
+                </Button>
+              </EmptyStateActions>
+            </EmptyStateFooter>
+          </EmptyState>
+        )) || (
+          <>
+            <DataList aria-label="Mixed expandable data list example">
+              {images.map((i) => {
+                return <ImageItem image={i} key={i.name} />;
+              })}
+            </DataList>
+            <Toolbar>
+              <ToolbarContent>
+                <ToolbarItem alignSelf="center">
+                  <p>
+                    This app periodically syncs image data with the CrowdStrike
+                    registry. Last sync was{" "}
+                    <Timestamp
+                      date={updated}
+                      style={{ fontSize: "var(--pf-v6-c-toolbar--FontSize)" }}
+                    />
+                    .
+                  </p>
+                </ToolbarItem>
+                <ToolbarItem>
+                  <Button variant="link" onClick={syncImages}>
+                    Sync images now
+                  </Button>
+                </ToolbarItem>
+                {/* <ToolbarItem hidden={true}>
+                  <Button variant="link" onClick={deleteImages}>
+                    Delete synced images
+                  </Button>
+                </ToolbarItem> */}
+              </ToolbarContent>
+            </Toolbar>
+          </>
+        )}
       </>
     );
   }
