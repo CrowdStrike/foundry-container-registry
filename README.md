@@ -2,6 +2,8 @@
 
 A Foundry application that provides a user-friendly interface for viewing CrowdStrike's container registry, allowing customers to easily view available container images and their associated tags.
 
+![app-image](./assets/app-image.png)
+
 ## Installation
 
 The application can be installed through Foundry's app import functionality. You'll need appropriate permissions in your Foundry environment to import and install the application.
@@ -72,8 +74,6 @@ Once the app has been installed, you can now access it via the **Custom apps** m
 
 > [!NOTE]
 > The first time you launch the app, you will need to click on the **Sync images now** button to fetch the latest data from the container registry and populate the app with data.
-
-![app-image](./assets/app-image.png)
 
 ## Documentation
 
