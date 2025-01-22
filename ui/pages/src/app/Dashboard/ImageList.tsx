@@ -173,11 +173,11 @@ const ImageList: React.FunctionComponent = () => {
                     Sync images now
                   </Button>
                 </ToolbarItem>
-                <ToolbarItem hidden={true}>
+                {/* <ToolbarItem hidden={true}>
                   <Button variant="link" onClick={deleteImages}>
                     Delete synced images
                   </Button>
-                </ToolbarItem>
+                </ToolbarItem> */}
               </ToolbarContent>
             </Toolbar>
           </>
