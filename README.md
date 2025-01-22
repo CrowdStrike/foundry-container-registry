@@ -1,10 +1,6 @@
 # Container Registry (Foundry app)
 
-A Foundry application that provides a container registry interface for CrowdStrike's container images.
-
-## Overview
-
-[Brief description of what the application does and its key features]
+A Foundry application that provides a user-friendly interface for viewing CrowdStrike's container registry, allowing customers to easily view available container images and their associated tags.
 
 ## Installation
 
@@ -83,6 +79,12 @@ Once the app has been installed, you can now access it via the **Custom apps** m
 
 - [Developer Guide](docs/DEVELOPER.md)
 - [Release and Deployment Process](docs/RELEASE.md)
+
+## Support
+
+Container Registry (Foundry app) is a community-driven, open source project designed to provide a user-friendly interface for viewing CrowdStrike's container registry. While not a formal CrowdStrike product, Container Registry (Foundry app) is maintained by CrowdStrike and supported in partnership with the open source developer community.
+
+For additional support, please see the [SUPPORT.md](./SUPPORT.md) file.
 
 ## License
 
