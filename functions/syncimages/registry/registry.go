@@ -12,6 +12,11 @@ import (
 	"github.com/containers/image/v5/types"
 )
 
+const (
+	OCIImageIndexMediaType    = "application/vnd.oci.image.index.v1+json"
+	OCIImageManifestMediaType = "application/vnd.oci.image.manifest.v1+json"
+)
+
 // Config holds the configuration for the registry.
 type Config struct {
 	User string
@@ -104,10 +109,10 @@ func (rc Config) GetImageArchitecture(image string, tag string) ([]string, error
 	}
 
 	switch manifestType {
-	case "application/vnd.docker.distribution.manifest.list.v2+json":
-		return getMultiImageArch(manifestBytes)
-	case "application/vnd.docker.distribution.manifest.v2+json":
-		return rc.getSingleImageArche(imgRef)
+	case manifest.DockerV2ListMediaType, OCIImageIndexMediaType:
+		return getMultiArchArchitectures(manifestBytes)
+	case manifest.DockerV2Schema2MediaType, OCIImageManifestMediaType:
+		return rc.getSingleArchArchitecture(imgRef)
 	default:
 		return nil, fmt.Errorf("unsupported manifest type: %s", manifestType)
 	}
@@ -121,8 +126,8 @@ func (rc Config) DockerConfigJson(registry string) string {
 	return base64EncodedAuth
 }
 
-// getMultiImageArch returns the architecture for each image in a multi-arch image.
-func getMultiImageArch(manifestBytes []byte) ([]string, error) {
+// getMultiArchArchitectures returns the architecture for each image in a multi-arch image.
+func getMultiArchArchitectures(manifestBytes []byte) ([]string, error) {
 	var index manifest.Schema2List
 	archs := []string{}
 
@@ -137,20 +142,8 @@ func getMultiImageArch(manifestBytes []byte) ([]string, error) {
 	return archs, nil
 }
 
-// translateArch converts the architecture to the format most common with linux architectures.
-func translateArch(arch string) string {
-	switch arch {
-	case "arm64":
-		return "aarch64"
-	case "amd64":
-		return "x86_64"
-	default:
-		return arch
-	}
-}
-
-// getSingleImageArche returns the architecture for a single image.
-func (rc Config) getSingleImageArche(imgRef types.ImageReference) ([]string, error) {
+// getSingleArchArchitecture returns the architecture for a single image.
+func (rc Config) getSingleArchArchitecture(imgRef types.ImageReference) ([]string, error) {
 	img, err := imgRef.NewImage(rc.ctx, rc.sysCtx)
 	if err != nil {
 		return nil, fmt.Errorf("error creating image instance: %w", err)
@@ -163,4 +156,16 @@ func (rc Config) getSingleImageArche(imgRef types.ImageReference) ([]string, err
 	}
 	arch := translateArch(imgInspect.Architecture)
 	return []string{arch}, nil
+}
+
+// translateArch converts the architecture to the format most common with linux architectures.
+func translateArch(arch string) string {
+	switch arch {
+	case "arm64":
+		return "aarch64"
+	case "amd64":
+		return "x86_64"
+	default:
+		return arch
+	}
 }
