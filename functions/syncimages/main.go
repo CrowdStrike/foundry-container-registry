@@ -422,22 +422,22 @@ func sensorImageInfo(sensorType falcon.SensorType) (string, string) {
 
 	switch sensorType {
 	case falcon.ImageSensor:
-		name = "Falcon Image Analyzer"
-		description = "The Falcon Image Analyzer container image performs real-time vulnerability assessment of container images as they are launched in your Kubernetes environment. It ensures comprehensive container security by scanning all running images, including those from registries not directly connected to CrowdStrike."
+		name = "Falcon Image Assessment at Runtime (IAR)"
+		description = "The Falcon Image Assessment at Runtime (IAR) container image performs real-time vulnerability assessment of container images as they are launched in your Kubernetes environment. It ensures comprehensive container security by scanning all running images, including those from registries not directly connected to CrowdStrike."
 	case falcon.SidecarSensor:
-		name = "Falcon Container Sensor"
-		description = "The Falcon Container Sensor container image provides runtime security for containerized workloads in Kubernetes environments by operating as a sidecar container. It's specifically designed to protect pods in environments where kernel-level access isn't available, such as AWS Fargate or Microsoft ACI."
+		name = "Falcon Container Sensor for Linux"
+		description = "The Falcon Container Sensor for Linux container image provides runtime security for containerized workloads in Kubernetes environments by operating as a sidecar container. It's specifically designed to protect pods in environments where kernel-level access isn't available, such as AWS Fargate or Microsoft ACI."
 	case falcon.KacSensor:
 		name = "Falcon Kubernetes Admission Controller"
 		description = "The Falcon Kubernetes Admission Controller container image enforces security policies and validates container images before they are deployed to your Kubernetes cluster. It integrates with CrowdStrike's container security to provide runtime protection and vulnerability management."
 	case falcon.NodeSensor:
-		name = "Falcon Linux Sensor"
-		description = "The Falcon Linux Sensor container image, deployed as a DaemonSet, provides advanced threat protection and workload visibility across all your Kubernetes nodes. It delivers kernel-level security for both the Linux host operating system and its running containers, with real-time threat detection and prevention capabilities."
+		name = "Falcon Sensor for Linux (DaemonSet)"
+		description = "The Falcon Sensor for Linux container image, deployed as a DaemonSet, provides advanced threat protection and workload visibility across all your Kubernetes nodes. It delivers kernel-level security for both the Linux host operating system and its running containers, with real-time threat detection and prevention capabilities."
 	case falcon.Snapshot:
 		name = "Snapshot Scanner"
 		description = "The Snapshot scanner container image provides agentless protection of Linux AWS EC2 instances by detecting installed applications, OS-level and software composition analysis (SCA) vulnerabilities, malware, and vulnerable running containers."
 	case falcon.FCSCli:
-		name = "FCS CLI"
+		name = "Falcon Cloud Security (FCS) CLI"
 		description = "The Falcon Cloud Security (FCS) CLI container image enables security assessment of Infrastructure as Code (IaC) before deployment, detecting misconfigurations and embedded secrets."
 	case falcon.SHRAController:
 		name = "Self-hosted Registry Assessment Jobs Controller"
