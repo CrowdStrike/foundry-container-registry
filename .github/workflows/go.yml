@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'functions/syncimages/**'
+      - '.github/workflows/go.yml'
 
 permissions:
   contents: read
