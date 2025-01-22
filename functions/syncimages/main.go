@@ -146,16 +146,15 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 
 // getImages returns a list of images and tags from the CrowdStrike API.
 func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageList, error) {
-	slog.Info("starting image retrieval process", "cloud", cloud)
+	slog.Info("Starting image retrieval process", "cloud", cloud)
 	startTime := time.Now()
 	ctx := context.Background()
 
 	cid, err := falconapi.GetCID(ctx, client)
 	if err != nil {
-		slog.Error("failed to get Falcon CID", "error", err)
 		return ImageList{}, fmt.Errorf("error getting Falcon CID: %v", err)
 	}
-	slog.Info("retrieved CID successfully", "cid", cid)
+	slog.Debug("Retrieved CID successfully", "cid", cid)
 
 	type sensorResult struct {
 		image Image
@@ -167,11 +166,8 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 	resultChan := make(chan sensorResult, len(sensorTypes))
 	var wg sync.WaitGroup
 
-	slog.Debug("processing sensor types", "types", sensorTypes)
 	for i, sensorType := range sensorTypes {
-		slog.Info("processing sensor type",
-			"type", sensorType,
-		)
+		slog.Info("Processing sensor type", "type", sensorType)
 		wg.Add(1)
 		go func(sensorType falcon.SensorType, index int) {
 			defer wg.Done()
@@ -179,11 +175,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 			prefix := loginPrefix(sensorType)
 			user := falconapi.RegistryLogin(prefix, cid)
 
-			slog.Debug("getting registry token",
-				"sensor_type", sensorType,
-				"login_prefix", prefix,
-				"user", user)
-
+			slog.Debug("Getting registry token", "sensor_type", sensorType, "login_prefix", prefix, "user", user)
 			pass, err := falconapi.RegistryToken(ctx, client, sensorType)
 			if err != nil {
 				resultChan <- sensorResult{
@@ -197,25 +189,20 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 			imageInfo.Password = pass
 
 			sensor := falcon.FalconContainerSensorImageURI(falcon.Cloud(cloud), sensorType)
-			slog.Debug("constructed sensor URI",
-				"sensor_type", sensorType,
-				"uri", sensor)
+			slog.Debug("Constructed sensor URI", "sensor_type", sensorType, "uri", sensor)
 
 			imageInfo.Registry = strings.Split(sensor, "/")[0]
 			imageInfo.Repository = sensor
 
 			dockerConfigJson := rc.DockerConfigJson(imageInfo.Registry)
-			slog.Debug("generated docker config",
-				"registry", imageInfo.Registry,
-				"config_length", len(dockerConfigJson))
+			slog.Debug("Generated docker config", "registry", imageInfo.Registry, "config_length", len(dockerConfigJson))
 			imageInfo.DockerJson = dockerConfigJson
 
 			name, description := sensorImageInfo(sensorType)
 			imageInfo.Name = name
 			imageInfo.Description = description
 
-			slog.Debug("getting repository tags",
-				"repository", sensor)
+			slog.Debug("Getting repository tags", "repository", sensor)
 			tags, err := rc.GetRepositoryTags(sensor)
 			if err != nil {
 				resultChan <- sensorResult{
@@ -223,14 +210,11 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 					err:   fmt.Errorf("error listing repository tags for %v: %v", sensor, err),
 				}
 			}
-			slog.Debug("retrieved tags",
-				"repository", sensor,
-				"tag_count", len(tags),
-				"tags", tags)
+			slog.Debug("Retrieved tags", "repository", sensor, "tag_count", len(tags), "tags", tags)
 
 			switch sensorType {
 			case falcon.ImageSensor, falcon.FCSCli, falcon.Snapshot, falcon.SHRAController, falcon.SHRAExecutor:
-				slog.Debug("sorting semver tags", "sensor_type", sensorType)
+				slog.Debug("Sorting semver tags", "sensor_type", sensorType)
 				tags, err = semverSort(tags)
 				if err != nil {
 					resultChan <- sensorResult{
@@ -248,19 +232,11 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 					return
 				}
 			case falcon.NodeSensor, falcon.SidecarSensor:
-				slog.Debug("filtering EOS tags < 7.04", "sensor_type", sensorType)
-				filteredTags := []string{}
+				slog.Debug("Filtering EOS tags < 7.04", "sensor_type", sensorType)
 
-				for _, tag := range tags {
-					versionPart := strings.Split(tag, "-")[0]
-					if v, err := semver.NewVersion(versionPart); err == nil {
-						constraint, _ := semver.NewConstraint(">= 7.04.0")
-						if constraint.Check(v) {
-							filteredTags = append(filteredTags, tag)
-						}
-					}
-				}
-				tags = filteredTags
+				// Remove tags that are end-of-life (EOL) for the specified sensor type
+				tags = removeEOLSensorTags(tags)
+
 				err := processTagsConcurrently(tags, &imageInfo, rc)
 				if err != nil {
 					resultChan <- sensorResult{
@@ -282,9 +258,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 
 			if len(tags) > 0 {
 				imageInfo.LatestTag = tags[len(tags)-1]
-				slog.Debug("getting latest tag digest",
-					"repository", imageInfo.Repository,
-					"tag", imageInfo.LatestTag)
+				slog.Debug("Getting latest tag digest", "repository", imageInfo.Repository, "tag", imageInfo.LatestTag)
 
 				digest, err := rc.GetImageDigest(imageInfo.Repository, imageInfo.LatestTag)
 				if err != nil {
@@ -336,13 +310,27 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		Images:     images,
 	}
 
-	slog.Info("completed image retrieval",
-		"duration_ms", regInfo.DurationMs,
-		"image_count", len(regInfo.Images))
-
+	slog.Info("Completed image retrieval", "duration_ms", regInfo.DurationMs, "image_count", len(regInfo.Images))
 	return regInfo, nil
 }
 
+// removeEOLSensorTags removes tags that are end-of-life (EOL) for the specified sensor type.
+func removeEOLSensorTags(tags []string) []string {
+	filteredTags := []string{}
+	for _, tag := range tags {
+		versionPart := strings.Split(tag, "-")[0]
+		if v, err := semver.NewVersion(versionPart); err == nil {
+			constraint, _ := semver.NewConstraint(">= 7.04.0")
+			if constraint.Check(v) {
+				filteredTags = append(filteredTags, tag)
+			}
+		}
+	}
+
+	return filteredTags
+}
+
+// processTagsConcurrently processes container image tags concurrently.
 func processTagsConcurrently(tags []string, imageInfo *Image, rc registry.Config) error {
 	type result struct {
 		tag    string
@@ -371,25 +359,20 @@ func processTagsConcurrently(tags []string, imageInfo *Image, rc registry.Config
 				wg.Done()
 			}()
 
-			slog.Debug("processing tag",
-				"repository", imageInfo.Repository,
-				"tag", tag)
+			slog.Debug("Processing image tag", "repository", imageInfo.Repository, "tag", tag)
 
 			digest, err := rc.GetImageDigest(imageInfo.Repository, tag)
 			if err != nil {
-				slog.Error("failed to get digest",
-					"repository", imageInfo.Repository,
-					"tag", tag,
-					"error", err)
-				resultChan <- result{tag: tag, err: err, index: index}
+				resultChan <- result{
+					tag:   tag,
+					err:   fmt.Errorf("error getting digest for tag: %v", err),
+					index: index,
+				}
 				return
 			}
 
 			archs := archInTag(tag, *imageInfo, rc)
-			slog.Debug("tag details",
-				"tag", tag,
-				"digest", digest,
-				"architectures", archs)
+			slog.Debug("Image tag details", "tag", tag, "digest", digest, "architectures", archs)
 
 			resultChan <- result{
 				tag:    tag,
@@ -468,35 +451,18 @@ func sensorImageInfo(sensorType falcon.SensorType) (string, string) {
 
 // archInTag returns the architecture from the tag.
 func archInTag(tag string, imageInfo Image, rc registry.Config) []string {
-	slog.Debug("determining architecture for tag",
-		"repository", imageInfo.Repository,
-		"tag", tag)
-
-	// If not in tag name, try to get from manifest
-	slog.Debug("attempting to get architectures from manifest",
-		"repository", imageInfo.Repository,
-		"tag", tag)
-
 	archs, err := rc.GetImageArchitecture(imageInfo.Repository, tag)
 	if err != nil {
-		slog.Warn("failed to get architectures from manifest",
-			"repository", imageInfo.Repository,
-			"tag", tag,
-			"error", err,
-			"falling_back_to", []string{"x86_64", "aarch64"})
-		return []string{"x86_64", "aarch64"}
+		slog.Warn("Failed to get architectures from manifest", "repository", imageInfo.Repository, "tag", tag, "error", err, "falling_back_to", []string{"unknown"})
+		return []string{"unknown"}
 	}
 
-	slog.Debug("got architectures from manifest",
-		"repository", imageInfo.Repository,
-		"tag", tag,
-		"architectures", archs)
+	slog.Debug("Got architectures from manifest", "repository", imageInfo.Repository, "tag", tag, "architectures", archs)
 	return archs
 }
 
 // semverSort sorts the tags in semver order.
 func semverSort(tags []string) ([]string, error) {
-	var validTags []string
 	sv := make([]*semver.Version, 0, len(tags))
 
 	for _, r := range tags {
@@ -507,10 +473,9 @@ func semverSort(tags []string) ([]string, error) {
 			continue
 		}
 		sv = append(sv, v)
-		validTags = append(validTags, r)
 	}
 
-	if len(validTags) == 0 {
+	if len(sv) == 0 {
 		slog.Warn("No valid semver tags found", "tags", tags)
 		return tags, nil
 	}
@@ -523,7 +488,7 @@ func semverSort(tags []string) ([]string, error) {
 		result[i] = v.Original()
 	}
 
-	slog.Debug("semver results", "tags", result)
+	slog.Debug("Semver results", "tags", result)
 
 	return result, nil
 }
