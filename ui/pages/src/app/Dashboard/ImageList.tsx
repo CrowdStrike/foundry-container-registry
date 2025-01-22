@@ -159,8 +159,7 @@ const ImageList: React.FunctionComponent = () => {
               <ToolbarContent>
                 <ToolbarItem alignSelf="center">
                   <p>
-                    This app periodically syncs image data with the CrowdStrike
-                    registry. Last sync was{" "}
+                    Last sync was{" "}
                     <Timestamp
                       date={updated}
                       style={{ fontSize: "var(--pf-v6-c-toolbar--FontSize)" }}
