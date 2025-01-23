@@ -1,3 +1,7 @@
+<p align="center">
+   <img src="https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/cs-logo.png" alt="CrowdStrike logo" width="500"/>
+</p>
+
 # Container Registry (Foundry app)
 
 A Foundry application that provides a user-friendly interface for viewing CrowdStrike's container registry, allowing customers to easily view available container images and their associated tags.
