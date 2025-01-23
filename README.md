@@ -79,7 +79,7 @@ Once the app has been installed, you can now access it via the **Custom apps** m
 > [!NOTE]
 > The first time you launch the app, you will need to click on the **Sync images now** button to fetch the latest data from the container registry and populate the app with data.
 
-## Documentation
+## Contributing
 
 - [Developer Guide](docs/DEVELOPER.md)
 - [Release and Deployment Process](docs/RELEASE.md)
