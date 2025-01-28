@@ -138,9 +138,14 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 		apiConfig.ClientSecret = os.Getenv("FALCON_CLIENT_SECRET")
 	}
 
+	// When cloud is set to autodiscover, the client will attempt to determine the cloud based on the API response and update the config.
+	// When the NewClient function returns, the cloud will be set to the actual cloud used.
+	cloud = apiConfig.Cloud.String()
+
 	slog.Debug("Creating Falcon client", "client_id", apiConfig.ClientId, "client_secret", apiConfig.ClientSecret, "cloud", cloud, "access_token", apiConfig.AccessToken, "user_agent", userAgent)
 
 	client, err := falcon.NewClient(apiConfig)
+
 	return client, cloud, err
 }
 
