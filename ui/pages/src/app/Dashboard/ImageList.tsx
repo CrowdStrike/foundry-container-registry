@@ -1,5 +1,5 @@
 import ImageCollectionResponse from "@app/types/ImageCollectionResponse";
-import FalconApi from "@crowdstrike/foundry-js";
+import FalconApi, { LocalData } from "@crowdstrike/foundry-js";
 import {
   Alert,
   Button,
@@ -24,6 +24,7 @@ import { MOCK_IMAGES } from "./MockData";
 
 const ImageList: React.FunctionComponent = () => {
   const [falcon, setFalcon] = React.useState<FalconApi | null>(null);
+  const [data, setData] = React.useState<LocalData>();
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<Error | null>(null);
   const [images, setImages] = React.useState<Image[]>([]);
@@ -68,11 +69,8 @@ const ImageList: React.FunctionComponent = () => {
       return;
     }
     falcon
-      .connect()
-      .then(() => {
-        if (!falcon.isConnected) return;
-        return falcon.collection({ collection: "images" }).read("all");
-      })
+      .collection({ collection: "images" })
+      .read("all")
       .then((resp) => {
         const imageResp = resp as ImageCollectionResponse;
         // if (imageResp.errors && imageResp.errors.length > 0) {
@@ -105,12 +103,33 @@ const ImageList: React.FunctionComponent = () => {
           setErrorSafe("falcon.connect() completed but not connected");
         } else {
           setFalcon(f);
+          setData(f.data);
         }
       })
       .catch(setErrorSafe);
   }, []);
 
-  React.useEffect(loadImages, [falcon]);
+  // initial setup once falcon client is connected
+  React.useEffect(() => {
+    if (falcon == null) return;
+    loadImages();
+    falcon.events.on("data", setData);
+
+    // cleanup on unrender
+    return () => {
+      falcon.events.off("data", setData);
+    };
+  }, [falcon]);
+
+  React.useEffect(() => {
+    if (data == undefined) {
+      return;
+    } else if (data.theme == "theme-dark") {
+      document.documentElement.classList.add("pf-v6-theme-dark");
+    } else {
+      document.documentElement.classList.remove("pf-v6-theme-dark");
+    }
+  }, [data]);
 
   if (loading) {
     return (
