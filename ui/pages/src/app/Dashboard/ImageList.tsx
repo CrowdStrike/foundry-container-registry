@@ -1,4 +1,4 @@
-import FalconApi, { LocalData } from "@crowdstrike/foundry-js";
+import { useFoundry } from "@crowdstrike/alloy-react";
 import {
   Alert,
   Button,
@@ -20,11 +20,9 @@ import * as React from "react";
 import Image from "../types/Image";
 import ImageCollectionResponse from "../types/ImageCollectionResponse";
 import { ImageItem } from "./ImageItem";
-import { MOCK_IMAGES } from "./MockData";
 
 const ImageList: React.FunctionComponent = () => {
-  const [falcon, setFalcon] = React.useState<FalconApi | null>(null);
-  const [data, setData] = React.useState<LocalData>();
+  const { falcon, isInitialized } = useFoundry();
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<Error | null>(null);
   const [images, setImages] = React.useState<Image[]>([]);
@@ -57,17 +55,7 @@ const ImageList: React.FunctionComponent = () => {
   }
 
   function loadImages() {
-    if (falcon == null || !falcon.isConnected) return;
-    if (window.location.hostname == "localhost") {
-      // collection auth doesn't work in dev mode PLATFORMPG-792212
-      setUpdated(new Date());
-      setImages(MOCK_IMAGES);
-      setTimeout(() => {
-        // simulate collection load time so we can test the skelton
-        setLoading(false);
-      }, 1500);
-      return;
-    }
+    if (!falcon || !isInitialized) return;
     falcon
       .collection({ collection: "images" })
       .read("all")
@@ -95,41 +83,7 @@ const ImageList: React.FunctionComponent = () => {
     falcon!.collection({ collection: "images" }).delete("all");
   }
 
-  React.useEffect(() => {
-    const f = new FalconApi();
-    f.connect()
-      .then(() => {
-        if (!f.isConnected) {
-          setErrorSafe("falcon.connect() completed but not connected");
-        } else {
-          setFalcon(f);
-          setData(f.data);
-        }
-      })
-      .catch(setErrorSafe);
-  }, []);
-
-  // initial setup once falcon client is connected
-  React.useEffect(() => {
-    if (falcon == null) return;
-    loadImages();
-    falcon.events.on("data", setData);
-
-    // cleanup on unrender
-    return () => {
-      falcon.events.off("data", setData);
-    };
-  }, [falcon]);
-
-  React.useEffect(() => {
-    if (data == undefined) {
-      return;
-    } else if (data.theme == "theme-dark") {
-      document.documentElement.classList.add("pf-v6-theme-dark");
-    } else {
-      document.documentElement.classList.remove("pf-v6-theme-dark");
-    }
-  }, [data]);
+  React.useEffect(loadImages, [isInitialized]);
 
   if (loading) {
     return (
