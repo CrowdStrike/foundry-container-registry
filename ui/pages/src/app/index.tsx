@@ -1,16 +1,13 @@
-import * as React from "react";
+import { ConsolePage } from "@crowdstrike/alloy-react";
 import "@patternfly/react-core/dist/styles/base.css";
-import { HashRouter as Router } from "react-router-dom";
-import { AppLayout } from "@app/AppLayout/AppLayout";
-import { AppRoutes } from "@app/routes";
-import "@app/app.css";
+import * as React from "react";
+import "./app.css";
+import { Dashboard } from "./Dashboard/Dashboard";
 
 const App: React.FunctionComponent = () => (
-  <Router>
-    <AppLayout>
-      <AppRoutes />
-    </AppLayout>
-  </Router>
+  <ConsolePage title="Container Registry">
+    <Dashboard />
+  </ConsolePage>
 );
 
 export default App;

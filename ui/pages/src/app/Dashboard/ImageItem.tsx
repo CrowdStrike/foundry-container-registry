@@ -1,4 +1,3 @@
-import Image from "@app/types/Image";
 import {
   DataListCell,
   DataListContent,
@@ -18,6 +17,7 @@ import {
 import { CubeIcon } from "@patternfly/react-icons";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import React from "react";
+import Image from "../types/Image";
 
 interface ImageItemProps {
   image: Image;
@@ -92,7 +92,7 @@ export function ImageItem({ image }: ImageItemProps) {
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Image Path</DescriptionListTerm>
+                  <DescriptionListTerm>Image path</DescriptionListTerm>
                   <DescriptionListDescription>
                     <code>{image.repository}</code>
                   </DescriptionListDescription>

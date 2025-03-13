@@ -1,4 +1,3 @@
-import ImageCollectionResponse from "@app/types/ImageCollectionResponse";
 import FalconApi, { LocalData } from "@crowdstrike/foundry-js";
 import {
   Alert,
@@ -19,6 +18,7 @@ import {
 import { CubesIcon } from "@patternfly/react-icons";
 import * as React from "react";
 import Image from "../types/Image";
+import ImageCollectionResponse from "../types/ImageCollectionResponse";
 import { ImageItem } from "./ImageItem";
 import { MOCK_IMAGES } from "./MockData";
 
