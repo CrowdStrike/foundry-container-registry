@@ -220,13 +220,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 			switch sensorType {
 			case falcon.ImageSensor, falcon.FCSCli, falcon.Snapshot, falcon.SHRAController, falcon.SHRAExecutor:
 				slog.Debug("Sorting semver tags", "sensor_type", sensorType)
-				tags, err = semverSort(tags)
-				if err != nil {
-					resultChan <- sensorResult{
-						index: index,
-						err:   fmt.Errorf("error sorting tags: %v", err),
-					}
-				}
+				tags = semverSort(tags)
 
 				err := processTagsConcurrently(tags, &imageInfo, rc)
 				if err != nil {
@@ -467,7 +461,7 @@ func archInTag(tag string, imageInfo Image, rc registry.Config) []string {
 }
 
 // semverSort sorts the tags in semver order.
-func semverSort(tags []string) ([]string, error) {
+func semverSort(tags []string) []string {
 	sv := make([]*semver.Version, 0, len(tags))
 
 	for _, r := range tags {
@@ -482,7 +476,7 @@ func semverSort(tags []string) ([]string, error) {
 
 	if len(sv) == 0 {
 		slog.Warn("No valid semver tags found", "tags", tags)
-		return tags, nil
+		return tags
 	}
 
 	sort.Sort(semver.Collection(sv))
@@ -495,7 +489,7 @@ func semverSort(tags []string) ([]string, error) {
 
 	slog.Debug("Semver results", "tags", result)
 
-	return result, nil
+	return result
 }
 
 // allSensorTypes returns all sensor types.

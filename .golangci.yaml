@@ -25,8 +25,6 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
-    paths:
-      - falcon/
     rules:
       - linters:
           - errcheck
@@ -36,5 +34,3 @@ formatters:
     - gofmt
   exclusions:
     generated: lax
-    paths:
-      - falcon/
