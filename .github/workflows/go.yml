@@ -43,7 +43,7 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
 
       - name: Run linters
-        uses: golangci/golangci-lint-action@v6.1.1
+        uses: golangci/golangci-lint-action@v7.0.0
         with:
           args: --out-format=colored-line-number --timeout=5m12s
           version: latest
