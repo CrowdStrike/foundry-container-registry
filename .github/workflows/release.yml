@@ -3,27 +3,31 @@ name: Release
 on:
   release:
     types: [created]
-  
+
 env:
-    WORKDIR: "./ui/pages/"
+  WORKDIR: "./ui/pages/"
 
 jobs:
   ui:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-      
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+      - uses: actions/checkout@v4
 
-    - name: Run make package
-      run: |
-        make package
-      
-    - name: Upload Release Assets
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run make package
+        run: |
+          make package
+
+      - name: Upload Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ ! "${{ github.event.release.tag_name }}" =~ ^[0-9a-zA-Z._-]+$ ]]; then
+            echo "Invalid tag name format"
+            exit 1
+          fi
           gh release upload ${{ github.event.release.tag_name }} *.tar.gz
