@@ -1,0 +1,36 @@
+version: "2"
+linters:
+  enable:
+    - copyloopvar
+    - durationcheck
+    - errcheck
+    - forcetypeassert
+    - ineffassign
+    - godot
+    - gosec
+    - govet
+    - makezero
+    - misspell
+    - nilerr
+    - predeclared
+    - sloglint
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - errcheck
+        source: "^\\s*defer\\s+"
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax

@@ -41,7 +41,7 @@ func GetCID(ctx context.Context, client *client.CrowdStrikeAPISpecification) (st
 	return payload.Resources[0], nil
 }
 
-// getSnapshotToken returns a registry credential for the CrowdStrike Cloud Snapshots API
+// getSnapshotToken returns a registry credential for the CrowdStrike Cloud Snapshots API.
 func getSnapshotToken(ctx context.Context, client *client.CrowdStrikeAPISpecification) (string, error) {
 	res, err := client.CloudSnapshots.GetCredentialsMixin0Mixin60(&cloud_snapshots.GetCredentialsMixin0Mixin60Params{
 		Context: ctx,
@@ -66,7 +66,7 @@ func getSnapshotToken(ctx context.Context, client *client.CrowdStrikeAPISpecific
 	return valueString, nil
 }
 
-// getFCSCliToken returns a registry credential for the CrowdStrike FCS CLI API
+// getFCSCliToken returns a registry credential for the CrowdStrike FCS CLI API.
 func getFCSCliToken(ctx context.Context, client *client.CrowdStrikeAPISpecification) (string, error) {
 	res, err := client.CspgIacapi.GetCredentialsMixin0(&cspg_iacapi.GetCredentialsMixin0Params{
 		Context: ctx,
@@ -86,7 +86,7 @@ func getFCSCliToken(ctx context.Context, client *client.CrowdStrikeAPISpecificat
 	return *payload.Resources.Resources.Token, nil
 }
 
-// getDefaultToken returns a registry credential for the CrowdStrike Container Registry API
+// getDefaultToken returns a registry credential for the CrowdStrike Container Registry API.
 func getDefaultToken(ctx context.Context, client *client.CrowdStrikeAPISpecification) (string, error) {
 	res, err := client.FalconContainer.GetCredentials(&falcon_container.GetCredentialsParams{
 		Context: ctx,

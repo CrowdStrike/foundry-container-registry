@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'functions/syncimages/**'
+      - '.github/workflows/go.yml'
   push:
     branches:
       - main
@@ -45,7 +46,7 @@ jobs:
       - name: Run linters
         uses: golangci/golangci-lint-action@v7.0.0
         with:
-          args: --out-format=colored-line-number --timeout=5m12s
+          args: --timeout=5m12s
           version: latest
           working-directory: ${{ env.WORKDIR }}
 
