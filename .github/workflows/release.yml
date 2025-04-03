@@ -11,6 +11,13 @@ jobs:
   ui:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate tag name
+        run: |
+          if [[ ! "${{ github.event.release.tag_name }}" =~ ^[0-9a-zA-Z._-]+$ ]]; then
+            echo "Invalid tag name format"
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - name: Install Node.js
@@ -26,8 +33,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [[ ! "${{ github.event.release.tag_name }}" =~ ^[0-9a-zA-Z._-]+$ ]]; then
-            echo "Invalid tag name format"
-            exit 1
-          fi
           gh release upload ${{ github.event.release.tag_name }} *.tar.gz
