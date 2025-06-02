@@ -44,7 +44,7 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
 
       - name: Run linters
-        uses: golangci/golangci-lint-action@v7.0.0
+        uses: golangci/golangci-lint-action@v8.0.0
         with:
           args: --timeout=5m12s
           version: latest
