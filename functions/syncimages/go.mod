@@ -1,6 +1,6 @@
 module syncimages
 
-go 1.22.6
+go 1.23.0
 
 toolchain go1.23.4
 
@@ -55,7 +55,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c // indirect
-	golang.org/x/oauth2 v0.25.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
