@@ -142,7 +142,7 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 	// When the NewClient function returns, the cloud will be set to the actual cloud used.
 	cloud = apiConfig.Cloud.String()
 
-	slog.Debug("Creating Falcon client", "cloud", apiConfig.Cloud.String(), "user_agent", userAgent)
+	slog.Debug("Creating Falcon client", "cloud", apiConfig.Cloud.String(), "user_agent", userAgent) //nolint:gosec // G706 - cloud is an SDK enum and userAgent is built from constants; no injection risk
 
 	client, err := falcon.NewClient(apiConfig)
 
