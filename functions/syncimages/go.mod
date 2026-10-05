@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
-	github.com/CrowdStrike/foundry-fn-go v0.23.2
+	github.com/CrowdStrike/foundry-fn-go v0.24.0
 	github.com/Masterminds/semver v1.5.0
 	github.com/containers/image/v5 v5.33.1
 	github.com/crowdstrike/gofalcon v0.10.0

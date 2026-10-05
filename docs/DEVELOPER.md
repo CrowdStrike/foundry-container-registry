@@ -39,6 +39,12 @@
 
 Foundry functions don't have a "dev mode" so we test locally and then deploy.
 
+Collection writes are enabled when the request includes Foundry function identity
+(`fn_id`, exposed by the Go FDK as `Request.FnID`). The local request below omits
+that metadata and returns image data without updating the collection, even if an
+access token is supplied. Function identity is execution context, not an
+authorization check; Falcon API credentials still control collection access.
+
 #### Environment Setup
 
 1. Configure your environment variables:

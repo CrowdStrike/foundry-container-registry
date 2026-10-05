@@ -1,76 +1,92 @@
-app_id: ceb6e92b302b4b41aa9450249414e76f
+app_id: b05c95400f684ac490760c38c806857e
 name: Container Registry
 description: A graphical hub to the CrowdStrike container registry
 logo: https://assets.falcon.us-2.crowdstrike.com/apps/49ad42fb13104cc6a2d4bad53dec699f/containers-icon-160pxs.png
+vendor: ""
+vendor_products: []
+use_case: ""
 manifest_version: "2023-05-09"
 ignored:
-  - ui/(extensions|pages)(/.*?)/?node_modules
+    - ui\\pages\\node_modules\\.*
+    - e2e\\.env
+    - e2e\\node_modules\\.*
+    - e2e\\test-results\\.*
+    - .*\\package-lock.json
 ui:
-  homepage: pages.app
-  extensions: []
-  pages:
-    app:
-      id: 6d8239b2fd294f758cd805175bcff241
-      name: app
-      description: The multi-page app for Container Registry
-      path: ui/pages/dist
-      entrypoint: ui/pages/dist/index.html
-      content_security_policy:
-        connect-src: []
-        style-src: []
-        style-src-elem: []
-        script-src: []
-        form-action: []
-        img-src: []
-        media-src: []
-        object-src: []
-      permissions: []
-  dashboards: {}
-  navigation:
-    id: 30b114025698481eb3719ca4d3cafbe9
-    links:
-      - path: dashboard
-        name: Images
-        permissions: []
-        ref: pages.app
+    homepage: pages.app
+    extensions: []
+    pages:
+        app:
+            id: 4ac9adbfe5714767b7b63ead1cf3d20a
+            name: app
+            description: The multi-page app for Container Registry
+            path: ui/pages/dist
+            entrypoint: ui/pages/dist/index.html
+            content_security_policy:
+                connect-src: []
+                style-src: []
+                style-src-elem: []
+                script-src: []
+                form-action: []
+                img-src: []
+                media-src: []
+                object-src: []
+            permissions: []
+    dashboards: {}
+    navigation:
+        id: 30b114025698481eb3719ca4d3cafbe9
+        links:
+            - path: dashboard
+              name: Images
+              permissions: []
+              ref: pages.app
 api_integrations: []
 rtr_scripts: []
 collections:
-  - name: images
-    description: Available container images
-    schema: collections/images.json
-    permissions: []
-    workflow_integration: null
+    - name: images
+      description: Available container images
+      schema: collections/images.json
+      permissions: []
+      workflow_integration: null
 auth:
-  scopes:
-    - falcon-container:read
-    - iac:read
-    - kubernetes-protection:read
-    - sensor-installers:read
-    - snapshot-scanner:read
-  permissions: {}
-  roles: []
+    scopes:
+        - falcon-container:read
+        - iac:read
+        - kubernetes-protection:read
+        - sensor-installers:read
+        - snapshot-scanner:read
+    permissions: {}
+    roles: []
 functions:
-  - id: 6d81202a95b74e118eb2c16351a03250
-    name: syncimages
-    config: null
-    description: Sync CRWD Images
-    path: functions/syncimages
-    environment_variables: {}
-    handlers:
-      - name: handler
-        description: Sync CRWD Images
-        method: POST
-        api_path: /sync-images
-        request_schema: null
-        response_schema: null
-        workflow_integration:
-          id: 7f3a9c5b2e6d4f8ab1c0d2e4f6a8b0c2
-          disruptive: false
-          system_action: false # TODO: make this private (true) after debugging
-          tags: [Container Registry]
-        permissions: []
-    language: go
-workflows: []
+    - id: 71662f8188404e9aa20ea0366001cc27
+      name: syncimages
+      config: null
+      description: Sync CRWD Images
+      path: functions/syncimages
+      environment_variables: {}
+      handlers:
+        - name: handler
+          description: Sync CRWD Images
+          method: POST
+          api_path: /sync-images
+          payload_type: ""
+          request_schema: null
+          response_schema: null
+          workflow_integration:
+            id: 4b4e254532164346a024e4f8e9afa466
+            disruptive: false
+            system_action: false
+            tags:
+                - Container Registry
+          permissions: []
+      language: go
+workflows:
+    - id: 747d699b9fbd4449b2cad985e2893ca7
+      name: Container Registry Daily Image Sync
+      path: workflows/container-registry-daily-image-sync.yml
+      permissions: []
+parsers: []
 logscale:
-  saved_searches: []
+    saved_searches: []
+lookup_files: []
+docs: {}

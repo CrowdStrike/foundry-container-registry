@@ -35,16 +35,25 @@ type Image struct {
 	Repository   string `json:"repository"`
 	LatestTag    string `json:"latest"`
 	LatestDigest string `json:"digest"`
-	Login        string `json:"login"`
-	Password     string `json:"password"`
-	DockerJson   string `json:"dockerAuthConfig"`
 	Tags         []Tag  `json:"tags"`
 }
 
 type Tag struct {
-	Name   string   `json:"name"`
-	Digest string   `json:"digest"`
-	Arch   []string `json:"arch"`
+	Name      string     `json:"name"`
+	Digest    string     `json:"digest"`
+	Arch      []string   `json:"arch"`
+	BuildDate *time.Time `json:"buildDate,omitempty"`
+}
+
+type imageSource struct {
+	sensorType falcon.SensorType
+	regional   bool
+}
+
+type sensorResult struct {
+	image Image
+	index int
+	err   error
 }
 
 func main() {
@@ -94,8 +103,7 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 			}
 		}
 
-		// TODO: better way to determine we are running in a foundry function?
-		if accessToken != "" {
+		if isFoundryRequest(r) {
 			err = falconapi.WriteToCollection(client, imageData)
 			if err != nil {
 				return fdk.Response{
@@ -115,8 +123,16 @@ func newHandler(_ context.Context, logger *slog.Logger, _ fdk.SkipCfg) fdk.Handl
 	return mux
 }
 
+func isFoundryRequest(request fdk.Request) bool {
+	return request.FnID != ""
+}
+
 // newFalconClient creates a new Falcon client.
 func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string, error) {
+	return newFalconClientWithFactory(token, falcon.NewClient)
+}
+
+func newFalconClientWithFactory(token string, createClient func(*falcon.ApiConfig) (*client.CrowdStrikeAPISpecification, error)) (*client.CrowdStrikeAPISpecification, string, error) {
 	ctx := context.Background()
 	opts := fdk.FalconClientOpts()
 	cloud := opts.Cloud
@@ -138,13 +154,11 @@ func newFalconClient(token string) (*client.CrowdStrikeAPISpecification, string,
 		apiConfig.ClientSecret = os.Getenv("FALCON_CLIENT_SECRET")
 	}
 
-	// When cloud is set to autodiscover, the client will attempt to determine the cloud based on the API response and update the config.
-	// When the NewClient function returns, the cloud will be set to the actual cloud used.
+	// Client construction resolves the cloud when autodiscovery is enabled.
+	client, err := createClient(apiConfig)
 	cloud = apiConfig.Cloud.String()
 
-	slog.Debug("Creating Falcon client", "cloud", apiConfig.Cloud.String(), "user_agent", userAgent) //nolint:gosec // G706 - cloud is an SDK enum and userAgent is built from constants; no injection risk
-
-	client, err := falcon.NewClient(apiConfig)
+	slog.Debug("Created Falcon client", "cloud", cloud, "user_agent", userAgent) //nolint:gosec // G706 - cloud is an SDK enum and userAgent is built from constants; no injection risk
 
 	return client, cloud, err
 }
@@ -161,21 +175,17 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 	}
 	slog.Debug("Retrieved CID successfully", "cid", cid)
 
-	type sensorResult struct {
-		image Image
-		index int
-		err   error
-	}
-
-	sensorTypes := allSensorTypes()
-	resultChan := make(chan sensorResult, len(sensorTypes))
+	sources := allImageSources()
+	resultChan := make(chan sensorResult, len(sources))
 	var wg sync.WaitGroup
 
-	for i, sensorType := range sensorTypes {
+	for i, source := range sources {
+		sensorType := source.sensorType
 		slog.Info("Processing sensor type", "type", sensorType)
 		wg.Add(1)
-		go func(sensorType falcon.SensorType, index int) {
+		go func(source imageSource, index int) {
 			defer wg.Done()
+			sensorType := source.sensorType
 			imageInfo := Image{}
 			prefix := loginPrefix(sensorType)
 			user := falconapi.RegistryLogin(prefix, cid)
@@ -187,23 +197,21 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 					index: index,
 					err:   fmt.Errorf("error getting registry token for %v: %v", sensorType, err),
 				}
+				return
 			}
 
 			rc := registry.NewRegistryConfig(user, pass)
-			imageInfo.Login = user
-			imageInfo.Password = pass
 
-			sensor := falcon.FalconContainerSensorImageURI(falcon.Cloud(cloud), sensorType)
+			sensor := imageRepository(cloud, source)
 			slog.Debug("Constructed sensor URI", "sensor_type", sensorType, "uri", sensor)
 
 			imageInfo.Registry = strings.Split(sensor, "/")[0]
 			imageInfo.Repository = sensor
 
-			dockerConfigJson := rc.DockerConfigJson(imageInfo.Registry)
-			slog.Debug("Generated docker config", "registry", imageInfo.Registry, "config_length", len(dockerConfigJson))
-			imageInfo.DockerJson = dockerConfigJson
-
 			name, description := sensorImageInfo(sensorType)
+			if source.regional {
+				name += " (Regional)"
+			}
 			imageInfo.Name = name
 			imageInfo.Description = description
 
@@ -214,6 +222,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 					index: index,
 					err:   fmt.Errorf("error listing repository tags for %v: %v", sensor, err),
 				}
+				return
 			}
 			slog.Debug("Retrieved tags", "repository", sensor, "tag_count", len(tags), "tags", tags)
 
@@ -231,10 +240,8 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 					return
 				}
 			case falcon.NodeSensor, falcon.SidecarSensor:
-				slog.Debug("Filtering EOS tags < 7.04", "sensor_type", sensorType)
-
-				// Remove tags that are end-of-life (EOL) for the specified sensor type
-				tags = removeEOLSensorTags(tags)
+				slog.Debug("Filtering and sorting sensor tags", "sensor_type", sensorType)
+				tags = sortedSensorTags(tags)
 
 				err := processTagsConcurrently(tags, &imageInfo, rc)
 				if err != nil {
@@ -245,6 +252,9 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 					return
 				}
 			default:
+				if sensorType == falcon.KacSensor {
+					tags = semverSort(tags)
+				}
 				err := processTagsConcurrently(tags, &imageInfo, rc)
 				if err != nil {
 					resultChan <- sensorResult{
@@ -274,7 +284,7 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 				image: imageInfo,
 				index: index,
 			}
-		}(sensorType, i)
+		}(source, i)
 	}
 
 	// Close result channel once all goroutines complete
@@ -283,24 +293,9 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 		close(resultChan)
 	}()
 
-	// Collect and sort results
-	results := make([]sensorResult, 0, len(sensorTypes))
-	for result := range resultChan {
-		if result.err != nil {
-			return ImageList{}, result.err
-		}
-		results = append(results, result)
-	}
-
-	// Sort results based on original index
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].index < results[j].index
-	})
-
-	// Extract images in correct order
-	images := make([]Image, len(results))
-	for i, result := range results {
-		images[i] = result.image
+	images, err := collectImageResults(sources, resultChan)
+	if err != nil {
+		return ImageList{}, err
 	}
 
 	regInfo := ImageList{
@@ -313,30 +308,69 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 	return regInfo, nil
 }
 
-// removeEOLSensorTags removes tags that are end-of-life (EOL) for the specified sensor type.
-func removeEOLSensorTags(tags []string) []string {
+func collectImageResults(sources []imageSource, resultChan <-chan sensorResult) ([]Image, error) {
+	results := make([]sensorResult, 0, len(sources))
+	available := make(map[falcon.SensorType]bool)
+	failures := make(map[int]error)
+	for result := range resultChan {
+		source := sources[result.index]
+		if result.err != nil {
+			failures[result.index] = result.err
+			slog.Warn("Image repository retrieval failed", "sensor_type", source.sensorType, "regional", source.regional, "error", result.err)
+			continue
+		}
+		if len(result.image.Tags) == 0 {
+			failures[result.index] = fmt.Errorf("no image tags found for %s", source.sensorType)
+			continue
+		}
+		available[source.sensorType] = true
+		results = append(results, result)
+	}
+
+	for index, source := range sources {
+		if err := failures[index]; err != nil && !available[source.sensorType] {
+			return nil, err
+		}
+	}
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no images retrieved from the registry")
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].index < results[j].index
+	})
+	images := make([]Image, len(results))
+	for index, result := range results {
+		images[index] = result.image
+	}
+	return images, nil
+}
+
+func filterSensorTags(tags []string) []string {
 	filteredTags := []string{}
 	for _, tag := range tags {
 		versionPart := strings.Split(tag, "-")[0]
-		if v, err := semver.NewVersion(versionPart); err == nil {
-			constraint, _ := semver.NewConstraint(">= 7.04.0")
-			if constraint.Check(v) {
-				filteredTags = append(filteredTags, tag)
-			}
+		if _, err := semver.NewVersion(versionPart); err == nil {
+			filteredTags = append(filteredTags, tag)
 		}
 	}
 
 	return filteredTags
 }
 
+func sortedSensorTags(tags []string) []string {
+	return semverSort(filterSensorTags(tags))
+}
+
 // processTagsConcurrently processes container image tags concurrently.
 func processTagsConcurrently(tags []string, imageInfo *Image, rc registry.Config) error {
 	type result struct {
-		tag    string
-		digest string
-		archs  []string
-		err    error
-		index  int
+		tag       string
+		digest    string
+		archs     []string
+		buildDate *time.Time
+		err       error
+		index     int
 	}
 
 	resultChan := make(chan result, len(tags))
@@ -371,13 +405,18 @@ func processTagsConcurrently(tags []string, imageInfo *Image, rc registry.Config
 			}
 
 			archs := archInTag(tag, *imageInfo, rc)
-			slog.Debug("Image tag details", "tag", tag, "digest", digest, "architectures", archs)
+			buildDate, err := rc.GetImageBuildDate(imageInfo.Repository, tag)
+			if err != nil {
+				slog.Warn("Failed to get image build date", "repository", imageInfo.Repository, "tag", tag, "error", err)
+			}
+			slog.Debug("Image tag details", "tag", tag, "digest", digest, "architectures", archs, "build_date", buildDate)
 
 			resultChan <- result{
-				tag:    tag,
-				digest: digest,
-				archs:  archs,
-				index:  index,
+				tag:       tag,
+				digest:    digest,
+				archs:     archs,
+				buildDate: buildDate,
+				index:     index,
 			}
 		}(tag, i)
 	}
@@ -405,9 +444,10 @@ func processTagsConcurrently(tags []string, imageInfo *Image, rc registry.Config
 	// Append sorted results to imageInfo.Tags
 	for _, r := range results {
 		imageInfo.Tags = append(imageInfo.Tags, Tag{
-			Name:   r.tag,
-			Digest: r.digest,
-			Arch:   r.archs,
+			Name:      r.tag,
+			Digest:    r.digest,
+			Arch:      r.archs,
+			BuildDate: r.buildDate,
 		})
 	}
 
@@ -492,17 +532,39 @@ func semverSort(tags []string) []string {
 	return result
 }
 
-// allSensorTypes returns all sensor types.
-func allSensorTypes() []falcon.SensorType {
-	return []falcon.SensorType{
-		falcon.NodeSensor,
-		falcon.SidecarSensor,
-		falcon.ImageSensor,
-		falcon.KacSensor,
-		falcon.Snapshot,
-		falcon.FCSCli,
-		falcon.SHRAController,
-		falcon.SHRAExecutor,
+func imageRepository(cloud string, source imageSource) string {
+	regional := falcon.FalconContainerSensorImageURI(falcon.Cloud(cloud), source.sensorType)
+	if source.regional {
+		return regional
+	}
+
+	switch source.sensorType {
+	case falcon.NodeSensor, falcon.SidecarSensor, falcon.ImageSensor, falcon.KacSensor:
+		parts := strings.Split(regional, "/")
+		imageName := parts[len(parts)-1]
+		if source.sensorType == falcon.SidecarSensor {
+			imageName = "falcon-container"
+		}
+		return fmt.Sprintf("%s/%s/release/%s", parts[0], parts[1], imageName)
+	default:
+		return regional
+	}
+}
+
+func allImageSources() []imageSource {
+	return []imageSource{
+		{sensorType: falcon.NodeSensor},
+		{sensorType: falcon.SidecarSensor},
+		{sensorType: falcon.ImageSensor},
+		{sensorType: falcon.KacSensor},
+		{sensorType: falcon.Snapshot},
+		{sensorType: falcon.FCSCli},
+		{sensorType: falcon.SHRAController},
+		{sensorType: falcon.SHRAExecutor},
+		{sensorType: falcon.NodeSensor, regional: true},
+		{sensorType: falcon.SidecarSensor, regional: true},
+		{sensorType: falcon.ImageSensor, regional: true},
+		{sensorType: falcon.KacSensor, regional: true},
 	}
 }
 

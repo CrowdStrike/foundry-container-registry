@@ -131,13 +131,19 @@ func WriteToCollection(client *client.CrowdStrikeAPISpecification, images interf
 		return fmt.Errorf("error encoding image list: %v", err)
 	}
 
-	_, err := client.CustomStorage.Upload(&custom_storage.UploadParams{
+	response, err := client.CustomStorage.Upload(&custom_storage.UploadParams{
 		CollectionName: "images",
 		ObjectKey:      "all",
 		Body:           io.NopCloser(&buf),
 	})
 	if err != nil {
 		return fmt.Errorf("error storing image list in collection: %v", err)
+	}
+	if response == nil || response.GetPayload() == nil {
+		return fmt.Errorf("error storing image list in collection: empty API response")
+	}
+	if err := falcon.AssertNoError(response.GetPayload().Errors); err != nil {
+		return fmt.Errorf("error storing image list in collection: %w", err)
 	}
 
 	return nil

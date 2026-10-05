@@ -5,12 +5,10 @@ export default interface Image {
   registry: string;
   repository: string;
   digest: string;
-  login: string;
-  password: string;
-  dockerAuthConfig: string;
   tags: {
     name: string;
     digest: string;
     arch: string[];
+    buildDate?: string;
   }[];
 }

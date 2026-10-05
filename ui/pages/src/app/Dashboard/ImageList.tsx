@@ -19,6 +19,7 @@ import { CubesIcon } from "@patternfly/react-icons";
 import * as React from "react";
 import Image from "../types/Image";
 import ImageCollectionResponse from "../types/ImageCollectionResponse";
+import { groupImages } from "../utils/imageGroups";
 import { ImageItem } from "./ImageItem";
 
 const ImageList: React.FunctionComponent = () => {
@@ -85,6 +86,8 @@ const ImageList: React.FunctionComponent = () => {
 
   React.useEffect(loadImages, [isInitialized]);
 
+  const imageGroups = groupImages(images);
+
   if (loading) {
     return (
       <Grid>
@@ -104,14 +107,14 @@ const ImageList: React.FunctionComponent = () => {
             <p>{error.message}</p>
           </Alert>
         )}
-        {(images.length == 0 && (
+        {(imageGroups.length == 0 && (
           <EmptyState
-            titleText="No images synced"
+            titleText="No recent images"
             headingLevel="h4"
             icon={CubesIcon}
           >
             <EmptyStateBody>
-              Images haven't been synced from the CrowdStrike registry yet.
+              No images have builds from the past 18 months.
             </EmptyStateBody>
             <EmptyStateFooter>
               <EmptyStateActions>
@@ -123,9 +126,9 @@ const ImageList: React.FunctionComponent = () => {
           </EmptyState>
         )) || (
           <>
-            <DataList aria-label="Mixed expandable data list example">
-              {images.map((i) => {
-                return <ImageItem image={i} key={i.name} />;
+            <DataList aria-label="Container registry images">
+              {imageGroups.map((group) => {
+                return <ImageItem group={group} key={group.name} />;
               })}
             </DataList>
             <Toolbar>

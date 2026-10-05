@@ -37,6 +37,21 @@ body,
   margin-bottom: var(--pf-t--global--spacer--md);
 }
 
+.registry-variant-info {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+
+.registry-variant-info > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+  .registry-variant-info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .pf-v5-u-my-md {
   padding-top: inherit;
 }

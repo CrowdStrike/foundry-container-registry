@@ -79,6 +79,12 @@ Once the app has been installed, you can now access it via the **Custom apps** m
 > [!NOTE]
 > The first time you launch the app, you will need to click on the **Sync images now** button to fetch the latest data from the container registry and populate the app with data.
 
+The image list includes multi-cloud Falcon Sensor, Container Sensor, Kubernetes Admission Controller, and Image Assessment at Runtime repositories alongside available cloud-specific equivalents. Cloud-specific images are labeled **(Regional)**. Valid older tags are retained, including multi-cloud Falcon Sensor releases starting at 7.31 and cloud-specific Container Sensor releases through 7.32. Architectures are read from image manifests rather than inferred from tags.
+
+If a component's regional or multi-cloud repository is unavailable or empty, synchronization retains the other variant when it has images. If neither variant can be retrieved, synchronization reports an error and leaves the previous collection unchanged. Click **Sync images now** after deploying an updated sync function to refresh existing collection data.
+
+After installation, the **Container Registry Daily Image Sync** workflow is provisioned to refresh the collection daily at 07:38 UTC. You can still use **Sync images now** for an immediate refresh.
+
 ## Contributing
 
 - [Developer Guide](docs/DEVELOPER.md)

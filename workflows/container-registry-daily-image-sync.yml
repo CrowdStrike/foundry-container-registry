@@ -1,0 +1,17 @@
+name: Container Registry Daily Image Sync
+description: Sync CrowdStrike container images daily at 02:38 EST (07:38 UTC).
+provision_on_install: true
+trigger:
+    next:
+        - sync_images
+    event: Schedule
+    schedule:
+        time_cycle: "38 7 * * *"
+        tz: Etc/UTC
+    skip_concurrent: true
+actions:
+    sync_images:
+        id: functions.syncimages.handler
+        properties: {}
+        version_constraint: ~0
+output_fields: []

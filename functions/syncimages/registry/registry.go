@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
@@ -116,6 +117,27 @@ func (rc Config) GetImageArchitecture(image string, tag string) ([]string, error
 	default:
 		return nil, fmt.Errorf("unsupported manifest type: %s", manifestType)
 	}
+}
+
+// GetImageBuildDate returns the optional creation timestamp from the image config.
+func (rc Config) GetImageBuildDate(image string, tag string) (*time.Time, error) {
+	image = fmt.Sprintf("//%s:%s", image, tag)
+	imgRef, err := docker.ParseReference(image)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing reference: %w", err)
+	}
+
+	img, err := imgRef.NewImage(rc.ctx, rc.sysCtx)
+	if err != nil {
+		return nil, fmt.Errorf("error creating image instance: %w", err)
+	}
+	defer img.Close()
+
+	imgInspect, err := img.Inspect(rc.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error inspecting image: %w", err)
+	}
+	return imgInspect.Created, nil
 }
 
 // DockerConfigJson returns the Docker configuration JSON for the registry.

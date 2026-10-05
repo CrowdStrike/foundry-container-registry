@@ -1,0 +1,15 @@
+{
+  "name": "foundry-container-registry-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:list": "npx playwright test --list",
+    "test:auth": "npx playwright test --project=setup --headed"
+  },
+  "devDependencies": {
+    "@crowdstrike/foundry-playwright": "0.5.4",
+    "@types/node": "26.6.3"
+  }
+}
