@@ -35,9 +35,6 @@ type Image struct {
 	Repository   string `json:"repository"`
 	LatestTag    string `json:"latest"`
 	LatestDigest string `json:"digest"`
-	Login        string `json:"login"`
-	Password     string `json:"password"`
-	DockerJson   string `json:"dockerAuthConfig"`
 	Tags         []Tag  `json:"tags"`
 }
 
@@ -190,8 +187,6 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 			}
 
 			rc := registry.NewRegistryConfig(user, pass)
-			imageInfo.Login = user
-			imageInfo.Password = pass
 
 			sensor := falcon.FalconContainerSensorImageURI(falcon.Cloud(cloud), sensorType)
 			slog.Debug("Constructed sensor URI", "sensor_type", sensorType, "uri", sensor)
@@ -201,7 +196,6 @@ func getImages(client *client.CrowdStrikeAPISpecification, cloud string) (ImageL
 
 			dockerConfigJson := rc.DockerConfigJson(imageInfo.Registry)
 			slog.Debug("Generated docker config", "registry", imageInfo.Registry, "config_length", len(dockerConfigJson))
-			imageInfo.DockerJson = dockerConfigJson
 
 			name, description := sensorImageInfo(sensorType)
 			imageInfo.Name = name

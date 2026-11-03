@@ -22,15 +22,6 @@
           "repository": {
             "type": "string"
           },
-          "login": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          },
-          "dockerAuthConfig": {
-            "type": "string"
-          },
           "latest": {
             "type": "string"
           },
